@@ -1,0 +1,18 @@
+{
+    "manifest_version": 2,
+
+    "name": "Look Listen Read",
+    "description": "Listen to web pages",
+    "version": "1.0",
+
+    "content_scripts": [ {
+        "all_frames": true,
+        "js": [ "jquery.min.js", "responsivevoice.js", "content.js" ],
+        "matches": [ "http://*/*", "https://*/*" ]
+        // "matches": [ "http://*/*", "https://*/*", "file://*/*" ]
+    } ],
+
+    "permissions": [
+        "tabs"
+    ]
+}

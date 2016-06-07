@@ -15,18 +15,12 @@
 
 var LookListenRead = (function() {
 
-  var defaults = {
-    lang: "en-US",
-    rate: 1.2
-  };
-  
   var Status = {
     PLAYING : 1,
     STOPPED : 2,
     PAUSED : 3
   };
-  var rate = defaults.rate;
-  var status = Status.STOPPED, voice, textNodes, markedNode, position;
+  var status = Status.STOPPED, options, voice, rate, textNodes, markedNode, position;
 
   var log = console.log.bind(console);
   
@@ -65,13 +59,7 @@ var LookListenRead = (function() {
     speechSynthesis.speak(msg);
   }
 
-  function initVoice() {
-    voice = speechSynthesis.getVoices().filter(function(x){
-      return x.localService && x.lang == defaults.lang;
-      })[0];
-  }
-
-  function initPosition() {
+  function retrievePosition() {
     var selection = getSelection();
     if (selection.rangeCount > 0) {
       var selected = selection.getRangeAt(0).commonAncestorContainer;
@@ -82,18 +70,27 @@ var LookListenRead = (function() {
     }
   }
   
-  function init() {
-    if (voice) {
-      if (!textNodes) {
-        textNodes = getTextNodesIn($("body")[0]);
+  function init(opts) {
+    options = opts;
+    /* console.log("LookListenRead: waiting for voices...");*/
+    var voices = speechSynthesis.getVoices();
+      voice = voices.find(function(v){
+        return v.name == options.voice;
+      });
+      rate = options.rate;
+      if (voice) {
+        if (!textNodes) {
+          textNodes = getTextNodesIn($("body")[0]);
+        }
+        speechSynthesis.cancel();
+        $(document).keydown(keyHandler);
+        console.log("LookListenRead: started litener");
+      } else if (voices) {
+        alert("Voice not loaded, please change settings.");
+      } else {
+        alert("No voices loaded. Try again");
+        init(opts);
       }
-      /* log("Voice", voice);*/
-      speechSynthesis.cancel();
-      initPosition();
-      }
-    else {
-      alert("Voice not loaded yet, please try again");
-    }
   }
 
   function unmark(node) {
@@ -110,10 +107,14 @@ var LookListenRead = (function() {
       }
   }
 
+  function playAfterDelay() {
+    setTimeout(play, 200);
+  }
+  
   function start() {
     stop();
-    init();
-    setTimeout(play, 200);
+    retrievePosition();
+    playAfterDelay();
   }
 
   function play() {
@@ -153,7 +154,7 @@ var LookListenRead = (function() {
     position = pos;
     if (status == Status.PLAYING) {
       stop();
-      setTimeout(play, 200);
+      playAfterDelay();
     }
     updateMark();
   }
@@ -161,7 +162,7 @@ var LookListenRead = (function() {
   function speedup(percentage) {
     rate = rate * (1 + percentage/100);
     if (status == Status.PLAYING) {
-      pause(); setTimeout(play, 200);
+      pause(); playAfterDelay();
     }
   }
   
@@ -183,15 +184,11 @@ var LookListenRead = (function() {
     }
   }
 
-  speechSynthesis.onvoiceschanged = function() {
-    initVoice();
-  };
-
   return {
-    keyHandler: keyHandler
+    init: init
   };
 })();
 
-$(document).keydown(LookListenRead.keyHandler);
-
-$(document).ready(function() {});
+chrome.storage.sync.get(["voice", "rate"], function(options) {
+  LookListenRead.init(options);
+});

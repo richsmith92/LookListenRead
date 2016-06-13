@@ -1,18 +1,3 @@
-// ==UserScript==
-// @name         LookListenRead
-// @namespace    http://tampermonkey.net/
-// @version      0.1
-// @description  try to take over the world!
-// @author       You
-// @include      http://*
-// @include      https://*
-// @include      file://*
-// @require      https://code.responsivevoice.org/responsivevoice.js
-// @require      https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-rc1/jquery.min.js
-
-// @grant        none
-// ==/UserScript==
-
 var LookListenRead = (function() {
 
   var Status = {

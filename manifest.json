@@ -14,7 +14,6 @@
         "all_frames": true,
         "js": [
             "jquery.min.js",
-            "responsivevoice.js",
             "mousetrap.min.js",
             "defaults.js",
             "content.js" ],

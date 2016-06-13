@@ -1,10 +1,19 @@
-// Saves options to chrome.storage.sync.
+var options;
+
+function restore() {
+  console.log("Reading options from sync storage...");
+  chrome.storage.sync.get(defaults, function(items) {
+    options = items;
+    console.log(options);
+    document.getElementById('rate').value = items.rate;
+    initVoiceOptions();
+    initHotkeys();
+  });
+}
 
 function save() {
-  chrome.storage.sync.set({
-    voice: document.getElementById('voice').value,
-    rate: document.getElementById('rate').value
-  }, function() {
+  console.log(options);
+  chrome.storage.sync.set(options, function() {
     // Update status to let user know options were saved.
     var status = document.getElementById('status');
     status.textContent = 'Options saved.';
@@ -14,21 +23,11 @@ function save() {
   });
 }
 
-function restore() {
-  chrome.storage.sync.get({ // keys with default values
-    voice: null,
-    rate: 1
-  }, function(items) {
-    document.getElementById('rate').value = items.rate;
-    initVoiceOptions(items.voice);
-  });
-}
-
-function initVoiceOptions(defaultVoice) {
+function initVoiceOptions() {
   speechSynthesis.onvoiceschanged = function() {
     speechSynthesis.getVoices().forEach(function(voice) {
       var opt = document.createElement('option');
-      if (voice.name == defaultVoice) {
+      if (voice.name == options.voice) {
         opt.setAttribute('selected', 'selected');
       }
       opt.setAttribute('value', voice.name);
@@ -38,6 +37,37 @@ function initVoiceOptions(defaultVoice) {
   }
 }
 
+function initHotkeys() {
+  Object.keys(options.hotkeys).forEach(function(cmd){
+    if (defaults.hotkeys.hasOwnProperty(cmd)) {
+      addHotkeyInput(cmd);
+    } else {
+      // remove anything extra
+      delete options.hotkeys[cmd];
+    }
+  });
+}
+
+function addHotkeyInput(cmd) {
+  var input = document.createElement('input');
+  input.id = 'hotkey-' + cmd;
+  input.setAttribute('type', 'button');
+  input.setAttribute('value', options.hotkeys[cmd]);
+  input.addEventListener('click', function(){
+    Mousetrap.record(function(sequence) {
+      // sequence is an array like ['ctrl+k', 'c']
+      console.log(input.id);
+      input.setAttribute('value', sequence.join(','));
+      options.hotkeys[cmd] = sequence;
+      save();
+    });
+  });
+  var p = document.createElement('p');
+  p.appendChild(document.createTextNode(cmd));
+  p.appendChild(input);
+  document.getElementById('hotkeys').appendChild(p);
+}
+
+document.addEventListener('DOMContentLoaded', restore);
 document.getElementById('voice').addEventListener('change', save);
 document.getElementById('rate').addEventListener('change', save );
-document.addEventListener('DOMContentLoaded', restore);

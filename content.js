@@ -22,7 +22,17 @@ var LookListenRead = (function() {
   };
   var status = Status.STOPPED, options, voice, rate, textNodes, markedNode, position;
 
-  var log = console.log.bind(console);
+  var commands = {
+    next: function(){goto(position+1);},
+    previous: function(){goto(position-1);},
+    speedup: function(){speedup(10);},
+    slowdown: function(){speedup(-10);},
+    pauseOrResume: function(){pauseOrResume();},
+    start: function(){start();},
+    stop: function(){stop();}
+  }
+  
+  /* var log = console.log.bind(console);*/
   
   function getTextNodesIn(node, maxNodes) {
     var textNodes = [], nonWhitespaceMatcher = /\S/;
@@ -69,28 +79,31 @@ var LookListenRead = (function() {
       position = 0;
     }
   }
-  
+
+  function initVoice(callback) {
+    var voices = speechSynthesis.getVoices();
+    console.log("Found voices: " + voices.length);
+    voice = voices.find(function(v){return v.name == options.voice;});
+    if (voice) {
+      callback();
+    } else {
+      console.log("LookListenRead: Selected voice not found. Waiting for voices...");
+      speechSynthesis.onvoiceschanged = function() {initVoice(callback);}
+    }
+  }
+
   function init(opts) {
     options = opts;
-    /* console.log("LookListenRead: waiting for voices...");*/
-    var voices = speechSynthesis.getVoices();
-      voice = voices.find(function(v){
-        return v.name == options.voice;
+    rate = options.rate;
+    initVoice(function() {
+      textNodes = getTextNodesIn($("body")[0]);
+      speechSynthesis.cancel();
+      /* $(document).keydown(keyHandler);*/
+      Object.keys(options.hotkeys).forEach(function(cmd){
+        Mousetrap.bind(options.hotkeys[cmd],commands[cmd]);
       });
-      rate = options.rate;
-      if (voice) {
-        if (!textNodes) {
-          textNodes = getTextNodesIn($("body")[0]);
-        }
-        speechSynthesis.cancel();
-        $(document).keydown(keyHandler);
-        console.log("LookListenRead: started litener");
-      } else if (voices) {
-        alert("Voice not loaded, please change settings.");
-      } else {
-        alert("No voices loaded. Try again");
-        init(opts);
-      }
+      console.log("LookListenRead: started listener");
+    });
   }
 
   function unmark(node) {
@@ -165,30 +178,13 @@ var LookListenRead = (function() {
       pause(); playAfterDelay();
     }
   }
-  
-  function keyHandler(e) {
-    if (e.keyCode==39) { // ->
-      goto(position+1);
-    } else if (e.keyCode==37) { // <-
-      goto(position-1);
-    } else if (e.keyCode == 38 && e.ctrlKey) { // ctrl + up
-      speedup(10);
-    } else if (e.keyCode == 40 && e.ctrlKey) { // ctrl + down
-      speedup(-10);
-    } else if (e.keyCode==67) { // c
-      pauseOrResume();
-    } else if (e.keyCode==13) { // enter
-      start();
-    } else if (e.keyCode==27 || e.keyCode == 86) { // esc or v
-      stop();
-    }
-  }
 
   return {
     init: init
   };
 })();
 
-chrome.storage.sync.get(["voice", "rate"], function(options) {
+chrome.storage.sync.get(defaults, function(options) {
+  console.log(options);
   LookListenRead.init(options);
 });

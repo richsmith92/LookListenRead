@@ -5,7 +5,16 @@ var LookListenRead = (function() {
     STOPPED : 2,
     PAUSED : 3
   };
-  var status = Status.STOPPED, options, voice, rate, textNodes, markedNode, position;
+
+  var Chunk = {
+    SLICE : 1,
+    NODES : 2
+  };
+
+  var status = Status.STOPPED, options, voice, rate, chunks,
+      position = null,
+      maxLen = 150,
+      nonWhitespaceMatcher = /\S/;
 
   var commands = {
     next: function(){goto(position+1);},
@@ -17,53 +26,7 @@ var LookListenRead = (function() {
     stop: function(){stop();}
   }
   
-  /* var log = console.log.bind(console);*/
-  
-  function getTextNodesIn(node, maxNodes) {
-    var textNodes = [], nonWhitespaceMatcher = /\S/;
-    var count = 0;
-    function getTextNodes(node) {
-      if (maxNodes == null || count < maxNodes) {
-        if (node.nodeType == 3) {
-          if (nonWhitespaceMatcher.test(node.nodeValue)) {
-            textNodes.push(node);
-            count++;
-          }
-        } else {
-          for (var i = 0, len = node.childNodes.length; i < len; ++i) {
-            getTextNodes(node.childNodes[i]);
-          }
-        }
-      }
-    }
-    getTextNodes(node);
-    return textNodes;
-  }
-
-  function speakNode(textNode, cont) {
-    var msg = new SpeechSynthesisUtterance(textNode.textContent);
-    msg.rate = rate;
-    msg.voice = voice;
-    msg.onend = function(e) {
-      /* console.log(e);*/
-      if (status === Status.PLAYING) {
-        cont();
-      }
-    };
-    msg.onerror = function(e) { console.log(e); };
-    speechSynthesis.speak(msg);
-  }
-
-  function retrievePosition() {
-    var selection = getSelection();
-    if (selection.rangeCount > 0) {
-      var selected = selection.getRangeAt(0).commonAncestorContainer;
-      var first = getTextNodesIn(selected, 1)[0];
-      position = textNodes.findIndex(function(x){return x == first;});
-    } else {
-      position = 0;
-    }
-  }
+  var log = console.log.bind(console);
 
   function initVoice(callback) {
     var voices = speechSynthesis.getVoices();
@@ -77,11 +40,126 @@ var LookListenRead = (function() {
     }
   }
 
+  function speakText(text, cont) {
+    var msg = new SpeechSynthesisUtterance(text);
+    msg.rate = rate;
+    msg.voice = voice;
+    msg.onend = function(e) {
+      if (status === Status.PLAYING) {
+        cont();
+      }
+    };
+    msg.onerror = function(e) { console.log(e); };
+    speechSynthesis.speak(msg);
+  }
+  
+  function subnodesWithText(root) {
+    var result = [];
+    var count = 0;
+    function getTextNodes(node) {
+      if (node.nodeType == Node.TEXT_NODE) {
+        if (nonWhitespaceMatcher.test(node.nodeValue)) {
+          /* $(node).wrap('<span class="llr"></span>');*/
+          result.push({
+            type: Chunk.NODES,
+            nodes : [node],
+            text: node.nodeValue
+          });
+          count++;
+        }
+      } else {
+        for (var i = 0, len = node.childNodes.length; i < len; ++i) {
+          getTextNodes(node.childNodes[i]);
+        }
+      }
+    }
+    getTextNodes(root);
+    return result;
+  }
+
+  function totalText(root, maxLen) {
+    var text = "";
+    function go(node) {
+      if (text.length <= maxLen) {
+        if (node.nodeType == Node.TEXT_NODE) {
+          if (nonWhitespaceMatcher.test(node.nodeValue)) {
+            text += node.nodeValue;
+          }
+        } else {
+          for (var i = 0, len = node.childNodes.length; i < len; ++i) {
+            go(node.childNodes[i]);
+          }
+        }
+      }
+    }
+    go(root);
+    return text.length <= maxLen ? text : null;
+  }
+  
+  /* function nodesWithText(root) {
+   *   var result = [];
+   *   function go(parent, child) {
+   *     var parentLen = parent.text.length;
+   *     if (child.node.nodeType == Node.TEXT_NODE) {
+   *       if (nonWhitespaceMatcher.test(cur.node.nodeValue)) {
+   *         if totalText(child, maxLen - parentLen) { // use parent chunk 
+   *           parent.text += child.text;
+   *         } else { // new chunk for child
+   *           res
+   *         }
+   *         // TODO: split text by chunks
+   *         cur.text += cur.node.nodeValue;
+   *       } // else just skip child node
+   *     }
+   *     var maxNextLen = maxLen - curLen;
+   *     if (totalText(node)) {
+   *       result.push(node);
+   *     } else {
+   *     }
+   *   }
+   *   go(root);
+   *   return result;
+   * }
+   */
+
+  function findFirstTextNode(root) {
+    var textNode = null;
+    function go(node) {
+      if (textNode === null) {
+        if (node.nodeType == Node.TEXT_NODE) {
+          if (nonWhitespaceMatcher.test(node.nodeValue)) {
+            textNode = node;
+          }
+        } else {
+          for (var i = 0, len = node.childNodes.length; i < len; ++i) {
+            go(node.childNodes[i]);
+          }
+        }
+      }
+    }
+    go(root);
+    /* console.log(root);*/
+    return textNode;
+  }
+  
+  function startingPos() {
+    var selection = getSelection();
+    if (selection.rangeCount > 0) {
+      var selected = selection.getRangeAt(0).commonAncestorContainer;
+      var node = findFirstTextNode(selected);
+      return chunks.findIndex(function(chunk){return chunkHasNode(chunk,node);});
+    } else {
+      return 0;
+    }
+  }
+
   function init(opts) {
     options = opts;
     rate = options.rate;
+    document.normalize();
+    chunks = subnodesWithText(document.body);
+    
     initVoice(function() {
-      textNodes = getTextNodesIn($("body")[0]);
       speechSynthesis.cancel();
       /* $(document).keydown(keyHandler);*/
       Object.keys(options.hotkeys).forEach(function(cmd){
@@ -91,41 +169,51 @@ var LookListenRead = (function() {
     });
   }
 
-  function unmark(node) {
-    if (node && node.parentNode.tagName == "MARK") {
-      $(node).unwrap();
-    }
+  function chunkHasNode(chunk, node) {
+    return chunk.nodes.includes(node);
   }
   
-  function updateMark() {
-    unmark(markedNode);
-    if (status !== Status.STOPPED) {
-      markedNode = textNodes[position];
-      $(markedNode).wrap("<mark></mark>");
+  function setPosition(pos) {
+    pos = pos < 0 ? 0 : pos;
+    if (position !== null) {
+      chunk = chunks[position];
+      if (chunk.type === Chunk.NODES) {
+        chunk.nodes.forEach(function(node) {
+          $(node).unwrap(".llr-active");
+        });
       }
+    }
+    position = pos;
+    if (position !== null) {
+      chunk = chunks[position];
+      if (chunk.type === Chunk.NODES) {
+        chunk.nodes.forEach(function(node) {
+          $(node).wrap('<span class="llr-active"></span>');
+        });
+      }
+    }
   }
 
+  function play() {
+    status = Status.PLAYING;
+    speakText(chunks[position].text, function() {
+      if (position < chunks.length - 1) {
+        setPosition(position+1);
+        play();
+      } else {
+        pause();
+      }
+    });
+  }
+  
   function playAfterDelay() {
     setTimeout(play, 200);
   }
   
   function start() {
-    stop();
-    retrievePosition();
+    if (status === Status.PLAYING) pause();
+    setPosition(startingPos());
     playAfterDelay();
-  }
-
-  function play() {
-    status = Status.PLAYING;
-    updateMark();
-    speakNode(textNodes[position], function() {
-      if (position < textNodes.length - 1) {
-        position++;
-        play();
-      } else {
-        stop ();
-      }
-    });
   }
 
   function pause() {
@@ -143,18 +231,16 @@ var LookListenRead = (function() {
 
   function stop() {
     status = Status.STOPPED;
-    updateMark()
+    setPosition(null);
     speechSynthesis.cancel();
   }
 
   function goto(pos) {
-    var rewind = pos < position;
-    position = pos;
+    setPosition(pos);
     if (status == Status.PLAYING) {
-      stop();
+      pause();
       playAfterDelay();
     }
-    updateMark();
   }
   
   function speedup(percentage) {
@@ -170,6 +256,6 @@ var LookListenRead = (function() {
 })();
 
 chrome.storage.sync.get(defaults, function(options) {
-  console.log(options);
+  /* console.log(options);*/
   LookListenRead.init(options);
 });

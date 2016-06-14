@@ -12,6 +12,7 @@
 
     "content_scripts": [ {
         "all_frames": true,
+        "css": ["content.css"],
         "js": [
             "jquery.min.js",
             "mousetrap.min.js",

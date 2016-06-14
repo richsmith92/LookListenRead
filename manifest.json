@@ -15,6 +15,7 @@
         "css": ["content.css"],
         "js": [
             "jquery.min.js",
+            "jquery.blast.min.js",
             "mousetrap.min.js",
             "defaults.js",
             "content.js" ],

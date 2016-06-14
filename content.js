@@ -53,28 +53,24 @@ var LookListenRead = (function() {
     speechSynthesis.speak(msg);
   }
   
-  function subnodesWithText(root) {
-    var result = [];
-    var count = 0;
-    function getTextNodes(node) {
+  function initChunks(root) {
+    chunks = [];
+    function go(node) {
       if (node.nodeType == Node.TEXT_NODE) {
         if (nonWhitespaceMatcher.test(node.nodeValue)) {
-          /* $(node).wrap('<span class="llr"></span>');*/
-          result.push({
+          chunks.push({
             type: Chunk.NODES,
             nodes : [node],
             text: node.nodeValue
           });
-          count++;
         }
       } else {
         for (var i = 0, len = node.childNodes.length; i < len; ++i) {
-          getTextNodes(node.childNodes[i]);
+          go(node.childNodes[i]);
         }
       }
     }
-    getTextNodes(root);
-    return result;
+    go(root);
   }
 
   function totalText(root, maxLen) {
@@ -157,7 +153,8 @@ var LookListenRead = (function() {
     options = opts;
     rate = options.rate;
     document.normalize();
-    chunks = subnodesWithText(document.body);
+    $("body").blast({ delimiter: "sentence" });
+    initChunks(document.body);
     
     initVoice(function() {
       speechSynthesis.cancel();
@@ -207,7 +204,7 @@ var LookListenRead = (function() {
   }
   
   function playAfterDelay() {
-    setTimeout(play, 200);
+    setTimeout(play, 30);
   }
   
   function start() {

@@ -20,9 +20,11 @@ var LookListenRead = (function() {
     previous: function(){goto(position-1);},
     speedup: function(){speedup(10);},
     slowdown: function(){speedup(-10);},
-    pauseOrResume: function(){pauseOrResume();},
-    start: function(){start();},
-    stop: function(){stop();}
+    pauseOrResume: pauseOrResume,
+    start: start,
+    stop: stop,
+    nextBlock: function(){moveBlocks(1)},
+    previousBlock: function(){moveBlocks(-1)}
   }
   
   var log = console.log.bind(console);
@@ -173,6 +175,16 @@ var LookListenRead = (function() {
     speechSynthesis.cancel();
   }
 
+  function moveBlocks(n) {
+    var dir = Math.sign(n);
+    var pos = position;
+    while(n) {
+      if(chunks[pos + dir].block !== chunks[pos].block) n -= dir;
+      pos += dir;
+    }
+    goto(pos);
+  }
+  
   function goto(pos) {
     setPosition(pos);
     if (status == Status.PLAYING) {
@@ -182,7 +194,7 @@ var LookListenRead = (function() {
   }
   
   function speedup(percentage) {
-    rate = rate * (1 + percentage/100);
+    rate = rate * (1 + 0.01*percentage);
     if (status == Status.PLAYING) {
       pause(); playAfterDelay();
     }

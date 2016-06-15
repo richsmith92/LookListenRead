@@ -1,8 +1,10 @@
 var defaults = {
   hotkeys: {
     next: ["right"],
-    pauseOrResume: ["\\"],
     previous: ["left"],
+    nextBlock: ["down"],
+    previousBlock: ["up"],
+    pauseOrResume: ["\\"],
     slowdown: ["["],
     speedup: ["]"],
     start: ["enter"],

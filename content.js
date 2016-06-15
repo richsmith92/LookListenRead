@@ -5,15 +5,10 @@ var LookListenRead = (function() {
       return this[this.length - 1];
     };
   };
-  
-  var Status = {
-    PLAYING : 1,
-    STOPPED : 2,
-    PAUSED : 3
-  };
 
-  var status = Status.STOPPED, options, voice, rate, chunks,
-      position = null;
+  var playing = false,
+      position = null,
+      options, voice, chunks;
 
   var commands = {
     next: function(){goto(position+1);},
@@ -41,15 +36,11 @@ var LookListenRead = (function() {
     }
   }
 
-  function speakText(text, cont) {
+  function speakText(text, callback) {
     var msg = new SpeechSynthesisUtterance(text);
-    msg.rate = rate;
+    msg.rate = options.rate;
     msg.voice = voice;
-    msg.onend = function(e) {
-      if (status === Status.PLAYING) {
-        cont();
-      }
-    };
+    msg.onend = function(e) { playing && callback();};
     msg.onerror = function(e) { console.log(e); };
     speechSynthesis.speak(msg);
   }
@@ -63,7 +54,12 @@ var LookListenRead = (function() {
     return elem;
   }
 
+  /* Chunk is a set of blast nodes sharing common block-style parent. Nodes in chunk are
+     played and highlighted together.
+  */
   function initChunks() {
+    document.normalize();
+    $("body").blast({ delimiter: options.delimiter });
     var regexFilter = new RegExp(options.regexFilter);
     var regexIgnore = new RegExp(options.regexIgnore);
     chunks = [];
@@ -89,36 +85,19 @@ var LookListenRead = (function() {
          });
   }
   
-  function startingPos() {
+  // Position where to start new playback: selected node or the last position or first chunk
+  function startPosition() {
     try {
-      var selected = getSelection().getRangeAt(0).commonAncestorContainer;
-      /* console.log(selected, selected.nodeType);*/
-      var node = selected.nodeType == Node.TEXT_NODE ? selected.parentNode : 
-                 selected.getElementsByClassName("blast")[0];
-      return chunks.findIndex(function(chunk){return chunk.nodes.includes(node);});
+      var selNode = getSelection().getRangeAt(0).commonAncestorContainer;
+      var blastNode = selNode.nodeType == Node.TEXT_NODE ? selNode.parentNode : 
+                 selNode.getElementsByClassName("blast")[0];
+      return chunks.findIndex(function(chunk){return chunk.nodes.includes(blastNode);});
     } catch (err) {
-      console.log(err);
-      return 0;
+      return position ? position : 0;
     }
   }
-
-  function init(opts) {
-    options = opts;
-    rate = options.rate;
-    document.normalize();
-    $("body").blast({ delimiter: options.delimiter });
-    initChunks();
-    
-    initVoice(function() {
-      speechSynthesis.cancel();
-      /* $(document).keydown(keyHandler);*/
-      Object.keys(options.hotkeys).forEach(function(cmd){
-        Mousetrap.bind(options.hotkeys[cmd],commands[cmd]);
-      });
-      console.log("LookListenRead: started listener");
-    });
-  }
   
+  // Set new position and update highlighted chunk.
   function setPosition(pos) {
     if (pos !== null) pos = Math.max(0, Math.min(chunks.length - 1, pos));
     if (position !== null) {
@@ -135,7 +114,7 @@ var LookListenRead = (function() {
   }
 
   function play() {
-    status = Status.PLAYING;
+    playing = true;
     speakText(chunks[position].text, function() {
       if (position < chunks.length - 1) {
         setPosition(position+1);
@@ -146,33 +125,30 @@ var LookListenRead = (function() {
     });
   }
   
-  function playAfterDelay() {
-    setTimeout(play, 30);
-  }
   
-  function start() {
-    if (status === Status.PLAYING) pause();
-    setPosition(startingPos());
-    playAfterDelay();
-  }
-
   function pause() {
-    status = Status.PAUSED;
+    playing = false;
     speechSynthesis.cancel();
   }
 
   function pauseOrResume() {
-    if (status === Status.PLAYING) {
-      pause();
-    } else if (status === Status.PAUSED) {
-      play();
-    }
+    playing ? pause() : play();
+  }
+
+  function pauseAndResume() {
+    pause();
+    setTimeout(play, 30);
+  }
+
+  function start() {
+    setPosition(startPosition());
+    pauseAndResume();
   }
 
   function stop() {
-    status = Status.STOPPED;
-    setPosition(null);
+    playing = false;
     speechSynthesis.cancel();
+    setPosition(null);
   }
 
   function moveBlocks(n) {
@@ -187,17 +163,24 @@ var LookListenRead = (function() {
   
   function goto(pos) {
     setPosition(pos);
-    if (status == Status.PLAYING) {
-      pause();
-      playAfterDelay();
-    }
+    playing && pauseAndResume();
   }
   
   function speedup(percentage) {
-    rate = rate * (1 + 0.01*percentage);
-    if (status == Status.PLAYING) {
-      pause(); playAfterDelay();
-    }
+    options.rate *= 1 + 0.01*percentage;
+    playing && pauseAndResume();
+  }
+
+  function init(opts) {
+    options = opts;
+    initChunks();
+    initVoice(function() {
+      speechSynthesis.cancel();
+      Object.keys(options.hotkeys).forEach(function(cmd){
+        Mousetrap.bind(options.hotkeys[cmd],commands[cmd]);
+      });
+      console.log("LookListenRead: started listener");
+    });
   }
 
   return {

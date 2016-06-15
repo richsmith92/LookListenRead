@@ -11,5 +11,7 @@ var defaults = {
   rate: "1.3",
   voice: "US English Female TTS (by Google)",
   delimiter: 'sentence',
-  maxLength: 150
+  maxLength: 200,
+  regexFilter: '\\S',
+  regexIgnore: "^\\[[\\w ,]*\\]$"
 }

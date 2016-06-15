@@ -1,19 +1,19 @@
 var options;
 
-var valueOpts = ['rate', 'voice', 'delimiter', 'maxLength'];
+var valueOpts = ['rate', 'voice', 'delimiter', 'maxLength', 'regexFilter', 'regexIgnore'];
 
 function restore() {
   console.log("Reading options from sync storage...");
   chrome.storage.sync.get(defaults, function(items) {
     options = items;
     console.log(options);
-    document.getElementById('rate').value = items.rate;
-    document.getElementById('maxLength').value = items.maxLength;
     ['sentence', 'element'].forEach(function(x) {
-      document.getElementById('delimiter').options.add(
-        new Option(x, x, false, x == options.delimiter));
+      document.getElementById('delimiter').options.add(new Option(x, x));
     });
     initVoiceOptions();
+    valueOpts.forEach(function(name){
+      document.getElementById(name).value = options[name];
+    });
     initHotkeys();
   });
 }

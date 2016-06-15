@@ -13,7 +13,7 @@ var LookListenRead = (function() {
   };
 
   var status = Status.STOPPED, options, voice, rate, chunks,
-      position = null,
+      position = null;
 
   var commands = {
     next: function(){goto(position+1);},
@@ -62,9 +62,13 @@ var LookListenRead = (function() {
   }
 
   function initChunks() {
+    var regexFilter = new RegExp(options.regexFilter);
+    var regexIgnore = new RegExp(options.regexIgnore);
     chunks = [];
     Array.from(document.getElementsByClassName("blast"))
-         .filter(function(span){return /\S/.test(span.innerText);})
+         .filter(function(span){
+           return regexFilter.test(span.innerText) && !regexIgnore.test(span.innerText);
+         })
          .forEach(function(span){
            var chunk = chunks.length > 0 ? chunks.last() : null;
            var block = closestBlock(span);

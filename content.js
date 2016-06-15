@@ -118,17 +118,15 @@ var LookListenRead = (function() {
   }
   
   function setPosition(pos) {
-    pos = pos < 0 ? 0 : pos;
+    pos = Math.max(0, Math.min(chunks.length - 1, pos));
     if (position !== null) {
-      chunk = chunks[position];
-      chunk.nodes.forEach(function(node) {
+      chunks[position].nodes.forEach(function(node) {
         $(node).removeClass("llr-active");
       });
     }
     position = pos;
     if (position !== null) {
-      chunk = chunks[position];
-      chunk.nodes.forEach(function(node) {
+      chunks[position].nodes.forEach(function(node) {
         $(node).addClass("llr-active");
       });
     }

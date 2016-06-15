@@ -118,7 +118,7 @@ var LookListenRead = (function() {
   }
   
   function setPosition(pos) {
-    pos = Math.max(0, Math.min(chunks.length - 1, pos));
+    if (pos !== null) pos = Math.max(0, Math.min(chunks.length - 1, pos));
     if (position !== null) {
       chunks[position].nodes.forEach(function(node) {
         $(node).removeClass("llr-active");

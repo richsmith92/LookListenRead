@@ -45,19 +45,19 @@ var LookListenRead = (function() {
     speechSynthesis.speak(msg);
   }
 
-  function displayType(elem) {
-    return (elem.currentStyle || window.getComputedStyle(elem, "")).display;
-  }
-
-  function closestBlock(elem) {
-    while (displayType(elem) !== 'block' && elem.parentNode) { elem = elem.parentNode }
-    return elem;
-  }
-
   /* Chunk is a set of blast nodes sharing common block-style parent. Nodes in chunk are
-     played and highlighted together.
-  */
+     played and highlighted together. */
   function initChunks() {
+
+    function displayType(elem) {
+      return (elem.currentStyle || window.getComputedStyle(elem, "")).display;
+    }
+
+    function closestBlock(elem) {
+      while (displayType(elem) !== 'block' && elem.parentNode) { elem = elem.parentNode }
+      return elem;
+    }
+
     document.normalize();
     $("body").blast({ delimiter: options.delimiter });
     var regexFilter = new RegExp(options.regexFilter);
@@ -125,7 +125,6 @@ var LookListenRead = (function() {
     });
   }
   
-  
   function pause() {
     playing = false;
     speechSynthesis.cancel();
@@ -146,8 +145,7 @@ var LookListenRead = (function() {
   }
 
   function stop() {
-    playing = false;
-    speechSynthesis.cancel();
+    pause();
     setPosition(null);
   }
 
@@ -175,7 +173,6 @@ var LookListenRead = (function() {
     options = opts;
     initChunks();
     initVoice(function() {
-      speechSynthesis.cancel();
       Object.keys(options.hotkeys).forEach(function(cmd){
         Mousetrap.bind(options.hotkeys[cmd],commands[cmd]);
       });

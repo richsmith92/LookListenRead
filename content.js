@@ -14,8 +14,6 @@ var LookListenRead = (function() {
 
   var status = Status.STOPPED, options, voice, rate, chunks,
       position = null,
-      maxLen = 150,
-      nonWhitespaceMatcher = /\S/;
 
   var commands = {
     next: function(){goto(position+1);},
@@ -54,44 +52,36 @@ var LookListenRead = (function() {
     speechSynthesis.speak(msg);
   }
 
+  function displayType(elem) {
+    return (elem.currentStyle || window.getComputedStyle(elem, "")).display;
+  }
+
+  function closestBlock(elem) {
+    while (displayType(elem) !== 'block' && elem.parentNode) { elem = elem.parentNode }
+    return elem;
+  }
+
   function initChunks() {
     chunks = [];
     Array.from(document.getElementsByClassName("blast"))
-         .filter(function(span){return nonWhitespaceMatcher.test(span.innerText);})
+         .filter(function(span){return /\S/.test(span.innerText);})
          .forEach(function(span){
            var chunk = chunks.length > 0 ? chunks.last() : null;
-           if (chunk &&
-               chunk.text.length + span.innerText.length <= options.maxLength &&
-               (chunk.nodes[0].parentNode == span.parentNode ||
-                chunk.nodes[0].parentNode == span.parentNode.parentNode)
+           var block = closestBlock(span);
+           if (chunk && chunk.block === block &&
+               chunk.text.length + span.innerText.length <= options.maxLength
            ) {
              chunk.nodes.push(span);
              chunk.text += ' ' + span.innerText;
            } else {
-             chunks.push({nodes:[span], text:span.innerText});
+             chunks.push({
+               nodes:[span],
+               text:span.innerText,
+               block: block
+             });
            }
          });
   }
-
-    /* 
-     *   function totalText(root, maxLen) {
-     *     var text = "";
-     *     function go(node) {
-     *       if (text.length <= maxLen) {
-     *         if (node.nodeType == Node.TEXT_NODE) {
-     *           if (nonWhitespaceMatcher.test(node.nodeValue)) {
-     *             text += node.nodeValue;
-     *           }
-     *         } else {
-     *           for (var i = 0, len = node.childNodes.length; i < len; ++i) {
-     *             go(node.childNodes[i]);
-     *           }
-     *         }
-     *       }
-     *     }
-     *     go(root);
-     *     return text.length <= maxLen ? text : null;
-     *   }*/
   
   function startingPos() {
     try {

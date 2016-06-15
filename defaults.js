@@ -10,5 +10,6 @@ var defaults = {
   },
   rate: "1.3",
   voice: "US English Female TTS (by Google)",
-  delimiter: 'sentence'
+  delimiter: 'sentence',
+  maxLength: 150
 }

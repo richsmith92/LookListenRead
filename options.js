@@ -1,6 +1,6 @@
 var options;
 
-var valueOpts = ['rate', 'voice', 'delimiter'];
+var valueOpts = ['rate', 'voice', 'delimiter', 'maxLength'];
 
 function restore() {
   console.log("Reading options from sync storage...");
@@ -8,6 +8,7 @@ function restore() {
     options = items;
     console.log(options);
     document.getElementById('rate').value = items.rate;
+    document.getElementById('maxLength').value = items.maxLength;
     ['sentence', 'element'].forEach(function(x) {
       document.getElementById('delimiter').options.add(
         new Option(x, x, false, x == options.delimiter));

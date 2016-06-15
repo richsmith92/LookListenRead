@@ -1,14 +1,15 @@
 var LookListenRead = (function() {
 
+  if (!Array.prototype.last){
+    Array.prototype.last = function(){
+      return this[this.length - 1];
+    };
+  };
+  
   var Status = {
     PLAYING : 1,
     STOPPED : 2,
     PAUSED : 3
-  };
-
-  var Chunk = {
-    SLICE : 1,
-    NODES : 2
   };
 
   var status = Status.STOPPED, options, voice, rate, chunks,
@@ -52,84 +53,45 @@ var LookListenRead = (function() {
     msg.onerror = function(e) { console.log(e); };
     speechSynthesis.speak(msg);
   }
-  
+
   function initChunks() {
     chunks = [];
-    Array.from(document.getElementsByClassName("blast")).forEach(function(span){
-      var text = span.innerText;
-      if (nonWhitespaceMatcher.test(text)) {
-        chunks.push({
-          type: Chunk.NODES,
-          nodes : [span],
-          text: text
-        });
-      }
-    });
+    Array.from(document.getElementsByClassName("blast"))
+         .filter(function(span){return nonWhitespaceMatcher.test(span.innerText);})
+         .forEach(function(span){
+           var chunk = chunks.length > 0 ? chunks.last() : null;
+           if (chunk &&
+               chunk.text.length + span.innerText.length <= options.maxLength &&
+               (chunk.nodes[0].parentNode == span.parentNode ||
+                chunk.nodes[0].parentNode == span.parentNode.parentNode)
+           ) {
+             chunk.nodes.push(span);
+             chunk.text += ' ' + span.innerText;
+           } else {
+             chunks.push({nodes:[span], text:span.innerText});
+           }
+         });
   }
 
-  function totalText(root, maxLen) {
-    var text = "";
-    function go(node) {
-      if (text.length <= maxLen) {
-        if (node.nodeType == Node.TEXT_NODE) {
-          if (nonWhitespaceMatcher.test(node.nodeValue)) {
-            text += node.nodeValue;
-          }
-        } else {
-          for (var i = 0, len = node.childNodes.length; i < len; ++i) {
-            go(node.childNodes[i]);
-          }
-        }
-      }
-    }
-    go(root);
-    return text.length <= maxLen ? text : null;
-  }
-  
-  /* function nodesWithText(root) {
-   *   var result = [];
-   *   function go(parent, child) {
-   *     var parentLen = parent.text.length;
-   *     if (child.node.nodeType == Node.TEXT_NODE) {
-   *       if (nonWhitespaceMatcher.test(cur.node.nodeValue)) {
-   *         if totalText(child, maxLen - parentLen) { // use parent chunk 
-   *           parent.text += child.text;
-   *         } else { // new chunk for child
-   *           res
-   *         }
-   *         // TODO: split text by chunks
-   *         cur.text += cur.node.nodeValue;
-   *       } // else just skip child node
-   *     }
-   *     var maxNextLen = maxLen - curLen;
-   *     if (totalText(node)) {
-   *       result.push(node);
-   *     } else {
-   *     }
-   *   }
-   *   go(root);
-   *   return result;
-   * }
-   */
-  /* 
-   *   function firstNodeWithClass(root, className) {
-   *     var first = null;
-   *     function go(node) {
-   *       if (first === null) {
-   *         if (node.nodeType == Node.TEXT_NODE) {
-   *           if (nonWhitespaceMatcher.test(node.nodeValue)) {
-   *             first = node;
-   *           }
-   *         } else {
-   *           for (var i = 0, len = node.childNodes.length; i < len; ++i) {
-   *             go(node.childNodes[i]);
-   *           }
-   *         }
-   *       }
-   *     }
-   *     go(root);
-   *     return first;
-   *   }*/
+    /* 
+     *   function totalText(root, maxLen) {
+     *     var text = "";
+     *     function go(node) {
+     *       if (text.length <= maxLen) {
+     *         if (node.nodeType == Node.TEXT_NODE) {
+     *           if (nonWhitespaceMatcher.test(node.nodeValue)) {
+     *             text += node.nodeValue;
+     *           }
+     *         } else {
+     *           for (var i = 0, len = node.childNodes.length; i < len; ++i) {
+     *             go(node.childNodes[i]);
+     *           }
+     *         }
+     *       }
+     *     }
+     *     go(root);
+     *     return text.length <= maxLen ? text : null;
+     *   }*/
   
   function startingPos() {
     try {
@@ -165,20 +127,16 @@ var LookListenRead = (function() {
     pos = pos < 0 ? 0 : pos;
     if (position !== null) {
       chunk = chunks[position];
-      if (chunk.type === Chunk.NODES) {
-        chunk.nodes.forEach(function(node) {
-          $(node).removeClass("llr-active");
-        });
-      }
+      chunk.nodes.forEach(function(node) {
+        $(node).removeClass("llr-active");
+      });
     }
     position = pos;
     if (position !== null) {
       chunk = chunks[position];
-      if (chunk.type === Chunk.NODES) {
-        chunk.nodes.forEach(function(node) {
-          $(node).addClass("llr-active");
-        });
-      }
+      chunk.nodes.forEach(function(node) {
+        $(node).addClass("llr-active");
+      });
     }
   }
 

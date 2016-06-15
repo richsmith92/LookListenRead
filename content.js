@@ -53,24 +53,18 @@ var LookListenRead = (function() {
     speechSynthesis.speak(msg);
   }
   
-  function initChunks(root) {
+  function initChunks() {
     chunks = [];
-    function go(node) {
-      if (node.nodeType == Node.TEXT_NODE) {
-        if (nonWhitespaceMatcher.test(node.nodeValue)) {
-          chunks.push({
-            type: Chunk.NODES,
-            nodes : [node],
-            text: node.nodeValue
-          });
-        }
-      } else {
-        for (var i = 0, len = node.childNodes.length; i < len; ++i) {
-          go(node.childNodes[i]);
-        }
+    Array.from(document.getElementsByClassName("blast")).forEach(function(span){
+      var text = span.innerText;
+      if (nonWhitespaceMatcher.test(text)) {
+        chunks.push({
+          type: Chunk.NODES,
+          nodes : [span],
+          text: text
+        });
       }
-    }
-    go(root);
+    });
   }
 
   function totalText(root, maxLen) {
@@ -117,34 +111,35 @@ var LookListenRead = (function() {
    *   return result;
    * }
    */
-
-  function findFirstTextNode(root) {
-    var textNode = null;
-    function go(node) {
-      if (textNode === null) {
-        if (node.nodeType == Node.TEXT_NODE) {
-          if (nonWhitespaceMatcher.test(node.nodeValue)) {
-            textNode = node;
-          }
-        } else {
-          for (var i = 0, len = node.childNodes.length; i < len; ++i) {
-            go(node.childNodes[i]);
-          }
-        }
-      }
-    }
-    go(root);
-    /* console.log(root);*/
-    return textNode;
-  }
+  /* 
+   *   function firstNodeWithClass(root, className) {
+   *     var first = null;
+   *     function go(node) {
+   *       if (first === null) {
+   *         if (node.nodeType == Node.TEXT_NODE) {
+   *           if (nonWhitespaceMatcher.test(node.nodeValue)) {
+   *             first = node;
+   *           }
+   *         } else {
+   *           for (var i = 0, len = node.childNodes.length; i < len; ++i) {
+   *             go(node.childNodes[i]);
+   *           }
+   *         }
+   *       }
+   *     }
+   *     go(root);
+   *     return first;
+   *   }*/
   
   function startingPos() {
-    var selection = getSelection();
-    if (selection.rangeCount > 0) {
-      var selected = selection.getRangeAt(0).commonAncestorContainer;
-      var node = findFirstTextNode(selected);
-      return chunks.findIndex(function(chunk){return chunkHasNode(chunk,node);});
-    } else {
+    try {
+      var selected = getSelection().getRangeAt(0).commonAncestorContainer;
+      /* console.log(selected, selected.nodeType);*/
+      var node = selected.nodeType == Node.TEXT_NODE ? selected.parentNode : 
+                 selected.getElementsByClassName("blast")[0];
+      return chunks.findIndex(function(chunk){return chunk.nodes.includes(node);});
+    } catch (err) {
+      console.log(err);
       return 0;
     }
   }
@@ -153,8 +148,8 @@ var LookListenRead = (function() {
     options = opts;
     rate = options.rate;
     document.normalize();
-    $("body").blast({ delimiter: "sentence" });
-    initChunks(document.body);
+    $("body").blast({ delimiter: options.delimiter });
+    initChunks();
     
     initVoice(function() {
       speechSynthesis.cancel();
@@ -165,10 +160,6 @@ var LookListenRead = (function() {
       console.log("LookListenRead: started listener");
     });
   }
-
-  function chunkHasNode(chunk, node) {
-    return chunk.nodes.includes(node);
-  }
   
   function setPosition(pos) {
     pos = pos < 0 ? 0 : pos;
@@ -176,7 +167,7 @@ var LookListenRead = (function() {
       chunk = chunks[position];
       if (chunk.type === Chunk.NODES) {
         chunk.nodes.forEach(function(node) {
-          $(node).unwrap(".llr-active");
+          $(node).removeClass("llr-active");
         });
       }
     }
@@ -185,7 +176,7 @@ var LookListenRead = (function() {
       chunk = chunks[position];
       if (chunk.type === Chunk.NODES) {
         chunk.nodes.forEach(function(node) {
-          $(node).wrap('<span class="llr-active"></span>');
+          $(node).addClass("llr-active");
         });
       }
     }

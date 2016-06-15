@@ -2,25 +2,18 @@
 <html>
 <head>
   <title>Options</title>
-  <style>
-    body: { padding: 10px; }
-  </style>
-</head>
-
-<body>
-  <p>
-    Voice <select id="voice"></select>
-  </p>
-  <p>
-    Rate <input type="number" step="0.1" id="rate">
-  </p>
-  <h3>Hotkeys</h3>
-  <div id="hotkeys"></div>
-  <div id="status"></div>
-
   <script src="mousetrap.min.js"></script>
   <script src="mousetrap-record.min.js"></script>
   <script src="defaults.js"></script>
   <script src="options.js"></script>
+</head>
+
+<body>
+  <p>Voice<select id="voice"></select></p>
+  <p>Rate<input type="number" step="0.1" id="rate"></p>
+  <p>Delimiter<select id="delimiter"></select></p>
+  <h3>Hotkeys</h3>
+  <div id="hotkeys"></div>
+  <p><div id="status"></div></p>
 </body>
 </html>

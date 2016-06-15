@@ -1,17 +1,26 @@
 var options;
 
+var valueOpts = ['rate', 'voice', 'delimiter'];
+
 function restore() {
   console.log("Reading options from sync storage...");
   chrome.storage.sync.get(defaults, function(items) {
     options = items;
     console.log(options);
     document.getElementById('rate').value = items.rate;
+    ['sentence', 'element'].forEach(function(x) {
+      document.getElementById('delimiter').options.add(
+        new Option(x, x, false, x == options.delimiter));
+    });
     initVoiceOptions();
     initHotkeys();
   });
 }
 
 function save() {
+  valueOpts.forEach(function(name){
+    options[name] = document.getElementById(name).value;
+  });
   console.log(options);
   chrome.storage.sync.set(options, function() {
     // Update status to let user know options were saved.
@@ -26,13 +35,12 @@ function save() {
 function initVoiceOptions() {
   speechSynthesis.onvoiceschanged = function() {
     speechSynthesis.getVoices().forEach(function(voice) {
-      var opt = document.createElement('option');
-      if (voice.name == options.voice) {
-        opt.setAttribute('selected', 'selected');
-      }
-      opt.setAttribute('value', voice.name);
-      opt.innerText = voice.name + " " + (voice.localService ? "(local)" : "(remote)");
-      document.getElementById('voice').appendChild(opt);
+      document.getElementById('voice').options.add(new Option(
+        voice.name + " " + (voice.localService ? "(local)" : "(remote)"),
+        voice.name,
+        false,
+        voice.name == options.voice
+      ));
     });
   }
 }
@@ -68,6 +76,9 @@ function addHotkeyInput(cmd) {
   document.getElementById('hotkeys').appendChild(p);
 }
 
-document.addEventListener('DOMContentLoaded', restore);
-document.getElementById('voice').addEventListener('change', save);
-document.getElementById('rate').addEventListener('change', save );
+document.addEventListener('DOMContentLoaded', function(){
+  restore();
+  valueOpts.forEach(function(name){
+    document.getElementById(name).addEventListener('change', save);
+  });
+});

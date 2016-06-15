@@ -9,5 +9,6 @@ var defaults = {
     stop: ["esc"]
   },
   rate: "1.3",
-  voice: "US English Female TTS (by Google)"
+  voice: "US English Female TTS (by Google)",
+  delimiter: 'sentence'
 }

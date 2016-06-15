@@ -150,13 +150,20 @@ var LookListenRead = (function() {
   }
 
   function moveBlocks(n) {
-    var dir = Math.sign(n);
-    var pos = position;
-    while(n) {
-      if(chunks[pos + dir].block !== chunks[pos].block) n -= dir;
-      pos += dir;
+    if (position != null) {
+      var dir = Math.sign(n);
+      var pos = position;
+      while(n) {
+        var newpos = pos + dir;
+        if(newpos >= 0 && newpos < chunks.length) {
+          if(chunks[newpos].block !== chunks[pos].block) n -= dir;
+          pos = newpos;
+        } else {
+          n = 0;
+        }
+      }
+      goto(pos);
     }
-    goto(pos);
   }
   
   function goto(pos) {

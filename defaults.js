@@ -5,10 +5,9 @@ var defaults = {
     previous: ["left"],
     nextBlock: ["down"],
     previousBlock: ["up"],
-    pauseOrResume: ["\\"],
+    pauseOrResume: ["space"],
     slowdown: ["["],
     speedup: ["]"],
-    start: ["enter"],
     exitMode: ["esc"]
   },
   rate: "1.3",

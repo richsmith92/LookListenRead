@@ -12,11 +12,10 @@ Go to `chrome://extensions`, check **Developer mode** checkbox on the top right,
 Then navigate to `LookListenRead` folder.
 
 You need to have TTS voices installed.
-With Chrome, you probably already have some preinstalled, but they are likely to be remote.
-With local voices the extension should perform better, with shorter pauses between pieces of text.
+With Chrome, you probably already have some preinstalled, but they are likely to be remote, so there will be noticeable pauses between chunks of text.
 
-I use local [US English Female TTS (by Google)](https://chrome.google.com/webstore/detail/google-voice-by-google/kcnhkahnjcbndmmehfkdnkjomaanaooo?hl=en) for testing. If you want to use other voice, you should select it in the extension options.
+I use local [US English Female TTS (by Google)](https://chrome.google.com/webstore/detail/google-voice-by-google/kcnhkahnjcbndmmehfkdnkjomaanaooo?hl=en) voice for testing. If you want to use other voice, you should select it in the extension options.
 
 ## Usage
 
-Open a webpage, select (e.g. double click) a piece where you want to start reading, and press `Enter` (or other hotkey you've configured for `start` command). `Esc` to stop, see or configure other hotkeys in the extension options.
+Open a webpage, enter the speaking mode with `Ctrl+Enter` and double click where you want to start reading. `Space` to pause/resume and `Esc` to exit the speaking mode. See other hotkeys in the extension options.

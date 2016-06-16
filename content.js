@@ -6,6 +6,8 @@ var LookListenRead = (function() {
     };
   };
 
+  var info = s => console.log("LookListenRead: " + s);
+
   var playing = false,
       chunkIx = null,
       blockIx = null,
@@ -21,18 +23,17 @@ var LookListenRead = (function() {
     pauseOrResume: pauseOrResume,
     slowdown: () => speedup(-10),
     speedup: () => speedup(10),
-    start: start,
     exitMode: exitMode
   };
   
   function initVoice(callback) {
     var voices = speechSynthesis.getVoices();
-    console.log("Found voices: " + voices.length);
+    info("Found voices: " + voices.length);
     voice = voices.find(v => v.name == options.voice);
     if (voice) {
       callback();
     } else {
-      console.log("LookListenRead: Selected voice not found. Waiting for voices...");
+      info("Selected voice not found. Waiting for voices...");
       speechSynthesis.onvoiceschanged = () => initVoice(callback)
     }
   }
@@ -110,6 +111,7 @@ var LookListenRead = (function() {
   }
 
   function play() {
+    chunkIx != null || setChunkIx(startPosition());
     playing = true;
     speakText(chunks[chunkIx].text, () => {
       if (chunkIx < chunks.length - 1) {
@@ -135,11 +137,6 @@ var LookListenRead = (function() {
     setTimeout(play, 30);
   }
 
-  function start() {
-    setChunkIx(startPosition());
-    pauseAndResume();
-  }
-
   function stop() {
     pause();
     setChunkIx(null);
@@ -163,12 +160,15 @@ var LookListenRead = (function() {
     playing && pauseAndResume();
   }
 
+  function bindHotkey(hotkey, callback) {
+    Mousetrap.bind(hotkey, e => { callback(); return false });
+  }
+
   function enterMode() {
     initChunks();
     initVoice(() => {
       Mousetrap.unbind(options.hotkeys.enterMode);
-      Object.keys(commands).forEach(
-        cmd => Mousetrap.bind(options.hotkeys[cmd], commands[cmd]));
+      Object.keys(commands).forEach(cmd => bindHotkey(options.hotkeys[cmd], commands[cmd]));
       chunks.forEach((chunk, i) => chunk.nodes.forEach(node => node.ondblclick = e => {
           gotoChunk(i, true);
           e.stopPropagation();
@@ -177,20 +177,21 @@ var LookListenRead = (function() {
         gotoChunk(block.chunks[0], true);
         e.stopPropagation();
       });
-      console.log("LookListenRead: started listener");
+      info("Enter speaking mode");
     });
   }
 
   function exitMode() {
     stop();
     Object.keys(commands).forEach(cmd => Mousetrap.unbind(options.hotkeys[cmd]));
-    Mousetrap.bind(options.hotkeys.exitMode, exitMode);
-    Mousetrap.bind(options.hotkeys.enterMode, enterMode);
+    bindHotkey(options.hotkeys.exitMode, exitMode);
+    bindHotkey(options.hotkeys.enterMode, enterMode);
+    info("Exit speaking mode");
   }
 
   return opts => {
     options = opts;
-    Mousetrap.bind(options.hotkeys.enterMode, enterMode);
+    bindHotkey(options.hotkeys.enterMode, enterMode);
   }
 
 })();

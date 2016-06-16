@@ -168,6 +168,8 @@ var LookListenRead = (function() {
       Mousetrap.unbind(options.hotkeys.enterMode);
       Object.keys(commands).forEach(
         cmd => Mousetrap.bind(options.hotkeys[cmd], commands[cmd]));
+      chunks.forEach((chunk, pos) =>
+        chunk.nodes.forEach(node => node.ondblclick = () => goto(pos)));
       console.log("LookListenRead: started listener");
     });
   }

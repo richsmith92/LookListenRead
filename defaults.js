@@ -1,5 +1,6 @@
 var defaults = {
   hotkeys: {
+    enterMode: ["ctrl+enter"],
     next: ["right"],
     previous: ["left"],
     nextBlock: ["down"],
@@ -8,7 +9,7 @@ var defaults = {
     slowdown: ["["],
     speedup: ["]"],
     start: ["enter"],
-    stop: ["esc"]
+    exitMode: ["esc"]
   },
   rate: "1.3",
   voice: "US English Female TTS (by Google)",

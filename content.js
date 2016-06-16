@@ -13,17 +13,15 @@ var LookListenRead = (function() {
   var commands = {
     next: function(){goto(position+1);},
     previous: function(){goto(position-1);},
-    speedup: function(){speedup(10);},
-    slowdown: function(){speedup(-10);},
-    pauseOrResume: pauseOrResume,
-    start: start,
-    stop: stop,
     nextBlock: function(){moveBlocks(1)},
-    previousBlock: function(){moveBlocks(-1)}
-  }
+    previousBlock: function(){moveBlocks(-1)},
+    pauseOrResume: pauseOrResume,
+    slowdown: function(){speedup(-10);},
+    speedup: function(){speedup(10);},
+    start: start,
+    exitMode: exitMode
+  };
   
-  var log = console.log.bind(console);
-
   function initVoice(callback) {
     var voices = speechSynthesis.getVoices();
     console.log("Found voices: " + voices.length);
@@ -176,23 +174,33 @@ var LookListenRead = (function() {
     playing && pauseAndResume();
   }
 
-  function init(opts) {
-    options = opts;
+  function enterMode() {
     initChunks();
     initVoice(function() {
-      Object.keys(options.hotkeys).forEach(function(cmd){
+      Mousetrap.unbind(options.hotkeys.enterMode);
+      Object.keys(commands).forEach(function(cmd){
         Mousetrap.bind(options.hotkeys[cmd],commands[cmd]);
       });
       console.log("LookListenRead: started listener");
     });
   }
 
-  return {
-    init: init
-  };
+  function exitMode() {
+    stop();
+    Object.keys(commands).forEach(function(cmd){
+      Mousetrap.unbind(options.hotkeys[cmd]);
+    });
+    Mousetrap.bind(options.hotkeys.enterMode, enterMode);
+  }
+
+  return function(opts) {
+    options = opts;
+    Mousetrap.bind(options.hotkeys.enterMode, enterMode);
+  }
+
 })();
 
 chrome.storage.sync.get(defaults, function(options) {
   /* console.log(options);*/
-  LookListenRead.init(options);
+  LookListenRead(options);
 });

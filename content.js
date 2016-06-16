@@ -16,8 +16,8 @@ var LookListenRead = (function() {
       options, voice;
 
   var commands = {
-    next: () => gotoChunk(chunkIx + 1),
-    previous: () => gotoChunk(chunkIx - 1),
+    next: () => gotoChunk(chunkIx + 1) && reset(),
+    previous: () => gotoChunk(chunkIx - 1) && reset(),
     nextBlock: () => gotoBlock(blockIx + 1),
     previousBlock: () => gotoBlock(blockIx - 1),
     pauseOrResume: pauseOrResume,
@@ -84,43 +84,15 @@ var LookListenRead = (function() {
          });
   }
   
-  // Position where to start new playback: selected node or the last chunkIx or first chunk
-  function startPosition() {
-    try {
-      var selNode = getSelection().getRangeAt(0).commonAncestorContainer;
-      var blastNode = selNode.nodeType == Node.TEXT_NODE ? selNode.parentNode : 
-                 selNode.getElementsByClassName("blast")[0];
-      return chunks.findIndex(chunk => chunk.nodes.includes(blastNode));
-    } catch (err) {
-      return chunkIx ? chunkIx : 0;
-    }
-  }
-  
   function bringToRange(i, xs) {
     return i == null ? i : Math.max(0, Math.min(xs.length - 1, i));
   }
 
-  // Set new chunkIx and update highlighted chunk.
-  function setChunkIx(i) {
-    if (chunkIx !== null)
-      chunks[chunkIx].nodes.forEach(node => $(node).removeClass("llr-active"));
-    chunkIx = i;
-    blockIx = blocks.findIndex(block => block.chunkIxs.includes(chunkIx));
-    if (chunkIx !== null)
-      chunks[chunkIx].nodes.forEach(node => $(node).addClass("llr-active"));
-  }
-
   function play() {
-    chunkIx != null || setChunkIx(startPosition());
+    chunkIx != null || gotoChunk(0);
     playing = true;
-    speakText(chunks[chunkIx].text, () => {
-      if (chunkIx < chunks.length - 1) {
-        setChunkIx(chunkIx + 1);
-        play();
-      } else {
-        pause();
-      }
-    });
+    speakText(chunks[chunkIx].text, () =>
+      chunkIx < chunks.length - 1 ? gotoChunk(chunkIx + 1) && play() : pause());
   }
   
   function pause() {
@@ -132,32 +104,45 @@ var LookListenRead = (function() {
     playing ? pause() : play();
   }
 
-  function pauseAndResume() {
-    pause();
-    setTimeout(play, 30);
+  function reset() {
+    if (playing) {
+      pause();
+      setTimeout(play, 30);
+    }
   }
 
   function stop() {
     pause();
-    setChunkIx(null);
+    gotoChunk(null);
   }
 
   function gotoBlock(i) {
     i = bringToRange(i, blocks);
-    blockIx === i || gotoChunk(blocks[i].chunkIxs[0]);
+    blockIx === i || gotoChunk(blocks[i].chunkIxs[0]) && reset();
   }
-  
-  function gotoChunk(i, startPlaying) {
+
+  // Go to new chunk index, highlight the chunk nodes and return true if new chunk index is
+  // not null and is different from old.
+  function gotoChunk(i) {
     i = bringToRange(i, chunks);
+    var result = false;
     if (chunkIx !== i) {
-      setChunkIx(i);
-      (startPlaying || playing) && pauseAndResume();
+      if (chunkIx !== null)
+        chunks[chunkIx].nodes.forEach(node => $(node).removeClass("llr-active"));
+      chunkIx = i;
+      blockIx = blocks.findIndex(block => block.chunkIxs.includes(chunkIx));
+      if (chunkIx !== null) {
+        chunks[chunkIx].nodes.forEach(node => $(node).addClass("llr-active"));
+        chunks[chunkIx].nodes[0].scrollIntoViewIfNeeded();
+        result = true;
+      }
     }
+    return result;
   }
   
   function speedup(percentage) {
     options.rate *= 1 + 0.01*percentage;
-    playing && pauseAndResume();
+    reset();
   }
 
   function bindHotkey(hotkey, callback) {
@@ -170,11 +155,11 @@ var LookListenRead = (function() {
       Mousetrap.unbind(options.hotkeys.enterMode);
       Object.keys(commands).forEach(cmd => bindHotkey(options.hotkeys[cmd], commands[cmd]));
       chunks.forEach((chunk, i) => chunk.nodes.forEach(node => node.ondblclick = e => {
-          gotoChunk(i, true);
+          gotoChunk(i) && reset();
           e.stopPropagation();
       }));
       blocks.forEach(block => block.node.ondblclick = e => {
-        gotoChunk(block.chunks[0], true);
+        gotoChunk(block.chunks[0]) && reset();
         e.stopPropagation();
       });
       info("Enter speaking mode");

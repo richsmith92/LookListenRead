@@ -18,4 +18,11 @@ I use local [US English Female TTS (by Google)](https://chrome.google.com/websto
 
 ## Usage
 
-Open a webpage, enter the speaking mode with `Ctrl+Enter` and double click where you want to start reading. `Space` to pause/resume and `Esc` to exit the speaking mode. See other hotkeys in the extension options.
+Open a webpage, enter the speaking mode with `Ctrl+Enter` and double click on text where you want to start reading. `Space` to pause/resume and `Esc` to exit the speaking mode.
+
+The webpage text is split into HTML text nodes, and by default new text node is created for each sentence. HTML elements like bold text or hyperlinks have their own text nodes, so they are treated as separate sentences.
+
+Then text nodes are merged into chunks with specified minimum length, to avoid pauses in speech between sentences. You can navigate between chunks with `←` and `→` keys. Active chunk is higlighted.
+
+Chunks are grouped into blocks, corresponding to HTML block-level elements, e.g. paragraphs. You can navigate between blocks by `↑` and `↓` arrows.
+

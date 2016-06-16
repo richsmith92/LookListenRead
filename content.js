@@ -34,7 +34,7 @@ var LookListenRead = (function() {
       callback();
     } else {
       info("Selected voice not found. Waiting for voices...");
-      speechSynthesis.onvoiceschanged = () => initVoice(callback)
+      speechSynthesis.onvoiceschanged = () => initVoice(callback);
     }
   }
 
@@ -104,10 +104,12 @@ var LookListenRead = (function() {
     playing ? pause() : play();
   }
 
-  function reset() {
+  function reset(startPlaying) {
     if (playing) {
       pause();
       setTimeout(play, 30);
+    } else if (startPlaying) {
+      play();
     }
   }
 
@@ -122,10 +124,9 @@ var LookListenRead = (function() {
   }
 
   // Go to new chunk index, highlight the chunk nodes and return true if new chunk index is
-  // not null and is different from old.
+  // not null.
   function gotoChunk(i) {
     i = bringToRange(i, chunks);
-    var result = false;
     if (chunkIx !== i) {
       if (chunkIx !== null)
         chunks[chunkIx].nodes.forEach(node => $(node).removeClass("llr-active"));
@@ -134,10 +135,9 @@ var LookListenRead = (function() {
       if (chunkIx !== null) {
         chunks[chunkIx].nodes.forEach(node => $(node).addClass("llr-active"));
         chunks[chunkIx].nodes[0].scrollIntoViewIfNeeded();
-        result = true;
       }
     }
-    return result;
+    return chunkIx !== null;
   }
   
   function speedup(percentage) {
@@ -155,11 +155,11 @@ var LookListenRead = (function() {
       Mousetrap.unbind(options.hotkeys.enterMode);
       Object.keys(commands).forEach(cmd => bindHotkey(options.hotkeys[cmd], commands[cmd]));
       chunks.forEach((chunk, i) => chunk.nodes.forEach(node => node.ondblclick = e => {
-          gotoChunk(i) && reset();
+          gotoChunk(i) && reset(true);
           e.stopPropagation();
       }));
       blocks.forEach(block => block.node.ondblclick = e => {
-        gotoChunk(block.chunks[0]) && reset();
+        gotoChunk(block.chunkIxs[0]) && reset(true);
         e.stopPropagation();
       });
       info("Enter speaking mode");

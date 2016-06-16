@@ -6,16 +6,9 @@ var LookListenRead = (function() {
     };
   };
 
-  var info = s => console.log("LookListenRead: " + s);
+  const info = s => console.log("LookListenRead: " + s);
 
-  var playing = false,
-      chunkIx = null,
-      blockIx = null,
-      chunks = [],
-      blocks = [],
-      options, voice;
-
-  var commands = {
+  const commands = {
     next: () => gotoChunk(chunkIx + 1) && reset(),
     previous: () => gotoChunk(chunkIx - 1) && reset(),
     nextBlock: () => gotoBlock(blockIx + 1),
@@ -25,9 +18,16 @@ var LookListenRead = (function() {
     speedup: () => speedup(10),
     exitMode: exitMode
   };
+
+  let playing = false,
+      chunkIx = null,
+      blockIx = null,
+      chunks = [],
+      blocks = [],
+      options, voice;
   
   function initVoice(callback) {
-    var voices = speechSynthesis.getVoices();
+    const voices = speechSynthesis.getVoices();
     info("Found voices: " + voices.length);
     voice = voices.find(v => v.name == options.voice);
     if (voice) {
@@ -39,7 +39,7 @@ var LookListenRead = (function() {
   }
 
   function speakText(text, callback) {
-    var msg = new SpeechSynthesisUtterance(text);
+    const msg = new SpeechSynthesisUtterance(text);
     msg.rate = options.rate;
     msg.voice = voice;
     msg.onend = e => playing && callback();
@@ -62,13 +62,13 @@ var LookListenRead = (function() {
 
     document.normalize();
     $("body").blast({ delimiter: options.delimiter, customClass: "looklistenread" });
-    var regexFilter = new RegExp(options.regexFilter);
-    var regexIgnore = new RegExp(options.regexIgnore);
+    const regexFilter = new RegExp(options.regexFilter);
+    const regexIgnore = new RegExp(options.regexIgnore);
     Array.from(document.getElementsByClassName("looklistenread"))
       .filter(span => regexFilter.test(span.innerText) && !regexIgnore.test(span.innerText))
          .forEach(span => {
-           var chunk = chunks.length > 0 ? chunks.last() : null;
-           var block = closestBlock(span);
+           const chunk = chunks.length > 0 ? chunks.last() : null;
+           const block = closestBlock(span);
            if (chunk && chunk.block === block &&
                chunk.text.length + span.innerText.length <= options.maxLength
            ) {
@@ -76,7 +76,7 @@ var LookListenRead = (function() {
              chunk.text += ' ' + span.innerText;
            } else {
              chunks.push({nodes:[span], text:span.innerText, block: block});
-             var i = chunks.length - 1;
+             const i = chunks.length - 1;
              blocks.length > 0 && blocks.last().node == block ?
                      blocks.last().chunkIxs.push(i) :
                      blocks.push({node: block, chunkIxs: [i]});

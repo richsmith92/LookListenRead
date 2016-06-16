@@ -1,26 +1,27 @@
-var options;
+let options;
 
-var valueOpts = ['rate', 'voice', 'delimiter', 'maxLength', 'regexFilter', 'regexIgnore'];
+const $ = id => document.getElementById(id);
+
+const valueOpts = ['rate', 'voice', 'delimiter', 'maxLength', 'regexFilter', 'regexIgnore'];
 
 function restore() {
   console.log("Reading options from sync storage...");
   chrome.storage.sync.get(defaults, items => {
     options = items;
     console.log(options);
-    ['sentence', 'element']
-      .forEach(x => document.getElementById('delimiter').options.add(new Option(x, x)));
+    ['sentence', 'element'] .forEach(x => $('delimiter').options.add(new Option(x, x)));
     initVoiceOptions();
-    valueOpts.forEach(name => document.getElementById(name).value = options[name]);
+    valueOpts.forEach(name => $(name).value = options[name]);
     initHotkeys();
   });
 }
 
 function save() {
-  valueOpts.forEach(name => options[name] = document.getElementById(name).value);
+  valueOpts.forEach(name => options[name] = $(name).value);
   console.log(options);
   chrome.storage.sync.set(options, () => {
     // Update status to let user know options were saved.
-    var status = document.getElementById('status');
+    const status = $('status');
     status.textContent = 'Options saved.';
     setTimeout((() => status.textContent = ''), 1000);
   });
@@ -29,7 +30,7 @@ function save() {
 function initVoiceOptions() {
   speechSynthesis.onvoiceschanged = () =>
     speechSynthesis.getVoices().forEach(voice =>
-      document.getElementById('voice').options.add(new Option(
+      $('voice').options.add(new Option(
         voice.name + " " + (voice.localService ? "(local)" : "(remote)"),
         voice.name,
         false,
@@ -43,7 +44,7 @@ function initHotkeys() {
 }
 
 function addHotkeyInput(cmd) {
-  var input = document.createElement('input');
+  const input = document.createElement('input');
   input.id = 'hotkey-' + cmd;
   input.setAttribute('type', 'button');
   input.setAttribute('value', options.hotkeys[cmd]);
@@ -56,13 +57,13 @@ function addHotkeyInput(cmd) {
       save();
     });
   });
-  var p = document.createElement('p');
+  const p = document.createElement('p');
   p.appendChild(document.createTextNode(cmd));
   p.appendChild(input);
-  document.getElementById('hotkeys').appendChild(p);
+  $('hotkeys').appendChild(p);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   restore();
-  valueOpts.forEach(name => document.getElementById(name).addEventListener('change', save));
+  valueOpts.forEach(name => $(name).addEventListener('change', save));
 });

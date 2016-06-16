@@ -4,57 +4,42 @@ var valueOpts = ['rate', 'voice', 'delimiter', 'maxLength', 'regexFilter', 'rege
 
 function restore() {
   console.log("Reading options from sync storage...");
-  chrome.storage.sync.get(defaults, function(items) {
+  chrome.storage.sync.get(defaults, items => {
     options = items;
     console.log(options);
-    ['sentence', 'element'].forEach(function(x) {
-      document.getElementById('delimiter').options.add(new Option(x, x));
-    });
+    ['sentence', 'element']
+      .forEach(x => document.getElementById('delimiter').options.add(new Option(x, x)));
     initVoiceOptions();
-    valueOpts.forEach(function(name){
-      document.getElementById(name).value = options[name];
-    });
+    valueOpts.forEach(name => document.getElementById(name).value = options[name]);
     initHotkeys();
   });
 }
 
 function save() {
-  valueOpts.forEach(function(name){
-    options[name] = document.getElementById(name).value;
-  });
+  valueOpts.forEach(name => options[name] = document.getElementById(name).value);
   console.log(options);
-  chrome.storage.sync.set(options, function() {
+  chrome.storage.sync.set(options, () => {
     // Update status to let user know options were saved.
     var status = document.getElementById('status');
     status.textContent = 'Options saved.';
-    setTimeout(function() {
-      status.textContent = '';
-    }, 1000);
+    setTimeout((() => status.textContent = ''), 1000);
   });
 }
 
 function initVoiceOptions() {
-  speechSynthesis.onvoiceschanged = function() {
-    speechSynthesis.getVoices().forEach(function(voice) {
+  speechSynthesis.onvoiceschanged = () =>
+    speechSynthesis.getVoices().forEach(voice =>
       document.getElementById('voice').options.add(new Option(
         voice.name + " " + (voice.localService ? "(local)" : "(remote)"),
         voice.name,
         false,
         voice.name == options.voice
-      ));
-    });
-  }
+      )));
 }
 
 function initHotkeys() {
-  Object.keys(options.hotkeys).forEach(function(cmd){
-    if (defaults.hotkeys.hasOwnProperty(cmd)) {
-      addHotkeyInput(cmd);
-    } else {
-      // remove anything extra
-      delete options.hotkeys[cmd];
-    }
-  });
+  Object.keys(options.hotkeys).forEach(cmd =>
+    defaults.hotkeys.hasOwnProperty(cmd) ? addHotkeyInput(cmd) : delete options.hotkeys[cmd]);
 }
 
 function addHotkeyInput(cmd) {
@@ -62,8 +47,8 @@ function addHotkeyInput(cmd) {
   input.id = 'hotkey-' + cmd;
   input.setAttribute('type', 'button');
   input.setAttribute('value', options.hotkeys[cmd]);
-  input.addEventListener('click', function(){
-    Mousetrap.record(function(sequence) {
+  input.addEventListener('click', () => {
+    Mousetrap.record(sequence => {
       // sequence is an array like ['ctrl+k', 'c']
       console.log(input.id);
       input.setAttribute('value', sequence.join(','));
@@ -77,9 +62,7 @@ function addHotkeyInput(cmd) {
   document.getElementById('hotkeys').appendChild(p);
 }
 
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', () => {
   restore();
-  valueOpts.forEach(function(name){
-    document.getElementById(name).addEventListener('change', save);
-  });
+  valueOpts.forEach(name => document.getElementById(name).addEventListener('change', save));
 });

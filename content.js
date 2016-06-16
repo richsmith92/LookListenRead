@@ -11,13 +11,13 @@ var LookListenRead = (function() {
       options, voice, chunks;
 
   var commands = {
-    next: function(){goto(position+1);},
-    previous: function(){goto(position-1);},
-    nextBlock: function(){moveBlocks(1)},
-    previousBlock: function(){moveBlocks(-1)},
+    next: () => goto(position+1),
+    previous: () => goto(position-1),
+    nextBlock: () => moveBlocks(1),
+    previousBlock: () => moveBlocks(-1),
     pauseOrResume: pauseOrResume,
-    slowdown: function(){speedup(-10);},
-    speedup: function(){speedup(10);},
+    slowdown: () => speedup(-10),
+    speedup: () => speedup(10),
     start: start,
     exitMode: exitMode
   };
@@ -25,12 +25,12 @@ var LookListenRead = (function() {
   function initVoice(callback) {
     var voices = speechSynthesis.getVoices();
     console.log("Found voices: " + voices.length);
-    voice = voices.find(function(v){return v.name == options.voice;});
+    voice = voices.find(v => v.name == options.voice);
     if (voice) {
       callback();
     } else {
       console.log("LookListenRead: Selected voice not found. Waiting for voices...");
-      speechSynthesis.onvoiceschanged = function() {initVoice(callback);}
+      speechSynthesis.onvoiceschanged = () => initVoice(callback)
     }
   }
 
@@ -38,8 +38,8 @@ var LookListenRead = (function() {
     var msg = new SpeechSynthesisUtterance(text);
     msg.rate = options.rate;
     msg.voice = voice;
-    msg.onend = function(e) { playing && callback();};
-    msg.onerror = function(e) { console.log(e); };
+    msg.onend = e => playing && callback();
+    msg.onerror = console.log;
     speechSynthesis.speak(msg);
   }
 
@@ -62,10 +62,8 @@ var LookListenRead = (function() {
     var regexIgnore = new RegExp(options.regexIgnore);
     chunks = [];
     Array.from(document.getElementsByClassName("blast"))
-         .filter(function(span){
-           return regexFilter.test(span.innerText) && !regexIgnore.test(span.innerText);
-         })
-         .forEach(function(span){
+      .filter(span => regexFilter.test(span.innerText) && !regexIgnore.test(span.innerText))
+         .forEach(span => {
            var chunk = chunks.length > 0 ? chunks.last() : null;
            var block = closestBlock(span);
            if (chunk && chunk.block === block &&
@@ -74,11 +72,7 @@ var LookListenRead = (function() {
              chunk.nodes.push(span);
              chunk.text += ' ' + span.innerText;
            } else {
-             chunks.push({
-               nodes:[span],
-               text:span.innerText,
-               block: block
-             });
+             chunks.push({nodes:[span], text:span.innerText, block: block});
            }
          });
   }
@@ -89,7 +83,7 @@ var LookListenRead = (function() {
       var selNode = getSelection().getRangeAt(0).commonAncestorContainer;
       var blastNode = selNode.nodeType == Node.TEXT_NODE ? selNode.parentNode : 
                  selNode.getElementsByClassName("blast")[0];
-      return chunks.findIndex(function(chunk){return chunk.nodes.includes(blastNode);});
+      return chunks.findIndex(chunk => chunk.nodes.includes(blastNode));
     } catch (err) {
       return position ? position : 0;
     }
@@ -98,22 +92,16 @@ var LookListenRead = (function() {
   // Set new position and update highlighted chunk.
   function setPosition(pos) {
     if (pos !== null) pos = Math.max(0, Math.min(chunks.length - 1, pos));
-    if (position !== null) {
-      chunks[position].nodes.forEach(function(node) {
-        $(node).removeClass("llr-active");
-      });
-    }
+    if (position !== null)
+      chunks[position].nodes.forEach(node => $(node).removeClass("llr-active"));
     position = pos;
-    if (position !== null) {
-      chunks[position].nodes.forEach(function(node) {
-        $(node).addClass("llr-active");
-      });
-    }
+    if (position !== null)
+      chunks[position].nodes.forEach(node => $(node).addClass("llr-active"));
   }
 
   function play() {
     playing = true;
-    speakText(chunks[position].text, function() {
+    speakText(chunks[position].text, () => {
       if (position < chunks.length - 1) {
         setPosition(position+1);
         play();
@@ -176,31 +164,25 @@ var LookListenRead = (function() {
 
   function enterMode() {
     initChunks();
-    initVoice(function() {
+    initVoice(() => {
       Mousetrap.unbind(options.hotkeys.enterMode);
-      Object.keys(commands).forEach(function(cmd){
-        Mousetrap.bind(options.hotkeys[cmd],commands[cmd]);
-      });
+      Object.keys(commands).forEach(
+        cmd => Mousetrap.bind(options.hotkeys[cmd], commands[cmd]));
       console.log("LookListenRead: started listener");
     });
   }
 
   function exitMode() {
     stop();
-    Object.keys(commands).forEach(function(cmd){
-      Mousetrap.unbind(options.hotkeys[cmd]);
-    });
+    Object.keys(commands).forEach(cmd => Mousetrap.unbind(options.hotkeys[cmd]));
     Mousetrap.bind(options.hotkeys.enterMode, enterMode);
   }
 
-  return function(opts) {
+  return opts => {
     options = opts;
     Mousetrap.bind(options.hotkeys.enterMode, enterMode);
   }
 
 })();
 
-chrome.storage.sync.get(defaults, function(options) {
-  /* console.log(options);*/
-  LookListenRead(options);
-});
+chrome.storage.sync.get(defaults, LookListenRead);

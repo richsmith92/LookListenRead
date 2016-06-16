@@ -61,10 +61,10 @@ var LookListenRead = (function() {
     }
 
     document.normalize();
-    $("body").blast({ delimiter: options.delimiter });
+    $("body").blast({ delimiter: options.delimiter, customClass: "looklistenread" });
     var regexFilter = new RegExp(options.regexFilter);
     var regexIgnore = new RegExp(options.regexIgnore);
-    Array.from(document.getElementsByClassName("blast"))
+    Array.from(document.getElementsByClassName("looklistenread"))
       .filter(span => regexFilter.test(span.innerText) && !regexIgnore.test(span.innerText))
          .forEach(span => {
            var chunk = chunks.length > 0 ? chunks.last() : null;

@@ -21,7 +21,7 @@ const LookListenRead = (function() {
   let blockIx = null
   let options
   let voice
-  let startPos = {x : null, y: null}
+  let startPos = {x : null, y: null, chunkIx: null}
   const chunks = []
   const blocks = []
   const utterances = []
@@ -138,16 +138,16 @@ const LookListenRead = (function() {
   function gotoChunk(i) {
     i = bringToRange(i, chunks)
     if (chunkIx !== i) {
-      chunkIx !== null &&
+      chunkIx != null &&
         chunks[chunkIx].nodes.forEach(node => $(node).removeClass('llr-active'))
       chunkIx = i
       blockIx = blocks.findIndex(block => block.chunkIxs.includes(chunkIx))
-      if (chunkIx !== null) {
+      if (chunkIx != null) {
         chunks[chunkIx].nodes.forEach(node => $(node).addClass('llr-active'))
         chunks[chunkIx].nodes[0].scrollIntoViewIfNeeded()
       }
     }
-    return chunkIx !== null
+    return chunkIx != null
   }
   
   function speedup(percentage) {
@@ -203,7 +203,7 @@ const LookListenRead = (function() {
     Object.keys(commands).forEach(cmd => bindHotkey(options.hotkeys[cmd], commands[cmd]))
     addListeners('dblclick', playChunk, playBlock)
     info('Enter speaking mode')
-    startSpeaking && startPos.chunkIx != null && gotoChunk(startPos.chunkIx) && play()
+    startSpeaking && gotoChunk(startPos.chunkIx) && play()
   }
 
   function exitMode() {

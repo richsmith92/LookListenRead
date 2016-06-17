@@ -2,7 +2,7 @@
 
 ## Overview
 
-Chrome extension to read webpages aloud.
+Chrome extension to read webpages aloud. I couldn't find any extension for Chrome or Firefox, which would allow easy navigation (e.g. rewind) and highlight currently uttered piece of text. So eventually I wrote my own.
 
 ## Install
 

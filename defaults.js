@@ -1,6 +1,6 @@
 const defaults = {
   hotkeys: {
-    enterMode: ['ctrl+enter'],
+    enterMode: ['alt+ctrl+s'],
     next: ['right'],
     previous: ['left'],
     nextBlock: ['down'],

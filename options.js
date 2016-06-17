@@ -1,3 +1,5 @@
+/* global Mousetrap, chrome, defaults */
+
 let options
 
 const $ = id => document.getElementById(id)
@@ -5,7 +7,7 @@ const $ = id => document.getElementById(id)
 const valueOpts = ['rate', 'voice', 'delimiter', 'maxLength', 'regexFilter', 'regexIgnore']
 
 function restore() {
-  console.log("Reading options from sync storage...")
+  console.log('Reading options from sync storage...')
   chrome.storage.sync.get(defaults, items => {
     options = items
     console.log(options)
@@ -23,7 +25,7 @@ function save() {
     // Update status to let user know options were saved.
     const status = $('status')
     status.textContent = 'Options saved.'
-    setTimeout((() => status.textContent = ''), 1000)
+    setTimeout(() => status.textContent = '', 1000)
   })
 }
 
@@ -31,10 +33,10 @@ function initVoiceOptions() {
   speechSynthesis.onvoiceschanged = () =>
     speechSynthesis.getVoices().forEach(voice =>
       $('voice').options.add(new Option(
-        voice.name + " " + (voice.localService ? "(local)" : "(remote)"),
+        voice.name + ' ' + (voice.localService ? '(local)' : '(remote)'),
         voice.name,
         false,
-        voice.name == options.voice
+        voice.name === options.voice
       )))
 }
 

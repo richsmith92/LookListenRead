@@ -1,12 +1,9 @@
+/* global $, Mousetrap, chrome, defaults */
+
 const LookListenRead = (function() {
 
-  if (!Array.prototype.last){
-    Array.prototype.last = function(){
-      return this[this.length - 1]
-    }
-  }
-
-  const info = s => console.log("LookListenRead: " + s)
+  const last = xs => xs[xs.length - 1]
+  const info = s => console.log('LookListenRead: ' + s)
 
   const commands = {
     next: () => gotoChunk(chunkIx + 1) && reset(),
@@ -16,32 +13,34 @@ const LookListenRead = (function() {
     pauseOrResume: pauseOrResume,
     slowdown: () => speedup(-10),
     speedup: () => speedup(10),
-    exitMode: exitMode
+    exitMode: exitMode,
   }
 
-  let playing = false,
-      chunkIx = null,
-      blockIx = null,
-      options, voice
-  const chunks = [], blocks = []
+  let playing = false
+  let chunkIx = null
+  let blockIx = null
+  let options
+  let voice
+  const chunks = []
+  const blocks = []
   
-  function initVoice(callback) {
+  function initVoice(next) {
     const voices = speechSynthesis.getVoices()
-    info("Found voices: " + voices.length)
-    voice = voices.find(v => v.name == options.voice)
+    info('Found voices: ' + voices.length)
+    voice = voices.find(v => v.name === options.voice)
     if (voice) {
-      callback()
+      next()
     } else {
-      info("Selected voice not found. Waiting for voices...")
-      speechSynthesis.onvoiceschanged = () => initVoice(callback)
+      info('Selected voice not found. Waiting for voices...')
+      speechSynthesis.onvoiceschanged = () => initVoice(next)
     }
   }
 
-  function speakText(text, callback) {
+  function speakText(text, next) {
     const msg = new SpeechSynthesisUtterance(text)
     msg.rate = options.rate
     msg.voice = voice
-    msg.onend = e => playing && callback()
+    msg.onend = () => playing && next()
     msg.onerror = console.log
     speechSynthesis.speak(msg)
   }
@@ -51,22 +50,24 @@ const LookListenRead = (function() {
   function initChunks() {
 
     function displayType(elem) {
-      return (elem.currentStyle || window.getComputedStyle(elem, "")).display
+      return (elem.currentStyle || window.getComputedStyle(elem, '')).display
     }
 
     function closestBlock(elem) {
-      while (displayType(elem) !== 'block' && elem.parentNode) { elem = elem.parentNode }
+      while (displayType(elem) !== 'block' && elem.parentNode) {
+        elem = elem.parentNode
+      }
       return elem
     }
 
     document.normalize()
-    $("body").blast({ delimiter: options.delimiter, customClass: "looklistenread" })
+    $('body').blast({ delimiter: options.delimiter, customClass: 'looklistenread' })
     const regexFilter = new RegExp(options.regexFilter)
     const regexIgnore = new RegExp(options.regexIgnore)
-    Array.from(document.getElementsByClassName("looklistenread"))
+    Array.from(document.getElementsByClassName('looklistenread'))
       .filter(span => regexFilter.test(span.innerText) && !regexIgnore.test(span.innerText))
          .forEach(span => {
-           const chunk = chunks.length > 0 ? chunks.last() : null
+           const chunk = chunks.length > 0 ? last(chunks) : null
            const block = closestBlock(span)
            if (chunk && chunk.block === block &&
                chunk.text.length + span.innerText.length <= options.maxLength
@@ -74,10 +75,10 @@ const LookListenRead = (function() {
              chunk.nodes.push(span)
              chunk.text += ' ' + span.innerText
            } else {
-             chunks.push({nodes:[span], text:span.innerText, block: block})
+             chunks.push({nodes: [span], text: span.innerText, block: block})
              const i = chunks.length - 1
-             blocks.length > 0 && blocks.last().node == block ?
-                     blocks.last().chunkIxs.push(i) :
+             blocks.length > 0 && last(blocks).node === block ?
+                     last(blocks).chunkIxs.push(i) :
                      blocks.push({node: block, chunkIxs: [i]})
            }
          })
@@ -127,12 +128,12 @@ const LookListenRead = (function() {
   function gotoChunk(i) {
     i = bringToRange(i, chunks)
     if (chunkIx !== i) {
-      if (chunkIx !== null)
-        chunks[chunkIx].nodes.forEach(node => $(node).removeClass("llr-active"))
+      chunkIx !== null &&
+        chunks[chunkIx].nodes.forEach(node => $(node).removeClass('llr-active'))
       chunkIx = i
       blockIx = blocks.findIndex(block => block.chunkIxs.includes(chunkIx))
       if (chunkIx !== null) {
-        chunks[chunkIx].nodes.forEach(node => $(node).addClass("llr-active"))
+        chunks[chunkIx].nodes.forEach(node => $(node).addClass('llr-active'))
         chunks[chunkIx].nodes[0].scrollIntoViewIfNeeded()
       }
     }
@@ -140,13 +141,13 @@ const LookListenRead = (function() {
   }
   
   function speedup(percentage) {
-    options.rate *= 1 + 0.01*percentage
+    options.rate *= 1 + 0.01 * percentage
     reset()
   }
 
-  function bindHotkey(hotkey, callback) {
-    Mousetrap.bind(hotkey, e => {
-      callback()
+  function bindHotkey(hotkey, action) {
+    Mousetrap.bind(hotkey, () => {
+      action()
       return false
     })
   }
@@ -157,14 +158,14 @@ const LookListenRead = (function() {
       Mousetrap.unbind(options.hotkeys.enterMode)
       Object.keys(commands).forEach(cmd => bindHotkey(options.hotkeys[cmd], commands[cmd]))
       chunks.forEach((chunk, i) => chunk.nodes.forEach(node => node.ondblclick = e => {
-          gotoChunk(i) && reset(true)
-          e.stopPropagation()
+        gotoChunk(i) && reset(true)
+        e.stopPropagation()
       }))
       blocks.forEach(block => block.node.ondblclick = e => {
         gotoChunk(block.chunkIxs[0]) && reset(true)
         e.stopPropagation()
       })
-      info("Enter speaking mode")
+      info('Enter speaking mode')
     })
   }
 
@@ -173,7 +174,7 @@ const LookListenRead = (function() {
     Object.keys(commands).forEach(cmd => Mousetrap.unbind(options.hotkeys[cmd]))
     bindHotkey(options.hotkeys.exitMode, exitMode)
     bindHotkey(options.hotkeys.enterMode, enterMode)
-    info("Exit speaking mode")
+    info('Exit speaking mode')
   }
 
   return opts => {

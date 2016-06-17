@@ -23,7 +23,8 @@ const LookListenRead = (function() {
   let voice
   const chunks = []
   const blocks = []
-  
+  const utterances = []
+
   function initVoice(next) {
     const voices = speechSynthesis.getVoices()
     info('Found voices: ' + voices.length)
@@ -42,6 +43,7 @@ const LookListenRead = (function() {
     msg.voice = voice
     msg.onend = () => playing && next()
     msg.onerror = console.log
+    utterances.push(msg)
     speechSynthesis.speak(msg)
   }
 
@@ -91,8 +93,9 @@ const LookListenRead = (function() {
   function play() {
     chunkIx != null || gotoChunk(0)
     playing = true
-    speakText(chunks[chunkIx].text, () =>
-      chunkIx < chunks.length - 1 ? gotoChunk(chunkIx + 1) && play() : pause())
+    speakText(chunks[chunkIx].text, () => {
+      chunkIx < chunks.length - 1 ? gotoChunk(chunkIx + 1) && play() : pause()
+    })
   }
   
   function pause() {

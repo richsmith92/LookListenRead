@@ -21,6 +21,7 @@ const LookListenRead = (function() {
   let blockIx = null
   let options
   let voice
+  let startPos = {x : null, y: null}
   const chunks = []
   const blocks = []
   const utterances = []
@@ -77,11 +78,17 @@ const LookListenRead = (function() {
              chunk.nodes.push(span)
              chunk.text += ' ' + span.innerText
            } else {
-             chunks.push({nodes: [span], text: span.innerText, block: block})
-             const i = chunks.length - 1
+             const i = chunks.length
+             chunks.push({
+               nodes: [span],
+               text: span.innerText,
+               block: block,
+               ix: i,
+               actions: []
+             })
              blocks.length > 0 && last(blocks).node === block ?
                      last(blocks).chunkIxs.push(i) :
-                     blocks.push({node: block, chunkIxs: [i]})
+                     blocks.push({node: block, chunkIxs: [i], actions: []})
            }
          })
   }
@@ -155,26 +162,54 @@ const LookListenRead = (function() {
     })
   }
 
-  function enterMode() {
-    initChunks()
-    initVoice(() => {
-      Mousetrap.unbind(options.hotkeys.enterMode)
-      Object.keys(commands).forEach(cmd => bindHotkey(options.hotkeys[cmd], commands[cmd]))
-      chunks.forEach((chunk, i) => chunk.nodes.forEach(node => node.ondblclick = e => {
-        gotoChunk(i) && reset(true)
-        e.stopPropagation()
-      }))
-      blocks.forEach(block => block.node.ondblclick = e => {
-        gotoChunk(block.chunkIxs[0]) && reset(true)
-        e.stopPropagation()
-      })
-      info('Enter speaking mode')
+  function addListeners(event, chunkAction, blockAction) {
+    chunkAction && chunks.forEach(chunk => {
+      chunk.actions[event] = chunkAction(chunk)
+      chunk.nodes.forEach(elem => elem.addEventListener(event, chunk.actions[event]))
     })
+    blockAction && blocks.forEach(block => {
+      block.actions[event] = blockAction(block)
+      block.node.addEventListener(event, block.actions[event])
+    })
+  }
+
+  function removeListeners(event) {
+    chunks.forEach(chunk => chunk.nodes.forEach(elem =>
+      elem.removeEventListener(event, chunk.actions[event])))
+    blocks.forEach(block => block.node.removeEventListener(event, block.actions[event]))
+  }
+
+  const playChunk = chunk => e => {
+    gotoChunk(chunk.ix) && reset(true)
+    e.stopPropagation()
+  }
+
+  const playBlock = block => e => {
+    gotoChunk(block.chunkIxs[0]) && reset(true)
+    e.stopPropagation()
+  }
+
+  const firstChunkIx = readable => readable.ix != null ? readable.ix : readable.chunkIxs[0]
+
+  const setStartPos = readable => e =>
+    startPos.x === e.clientX && startPos.y === e.clientY || (startPos = {
+      x : e.clientX,
+      y : e.clientY,
+      chunkIx: firstChunkIx(readable),
+    })
+
+  function enterMode(startSpeaking) {
+    Mousetrap.unbind(options.hotkeys.enterMode)
+    Object.keys(commands).forEach(cmd => bindHotkey(options.hotkeys[cmd], commands[cmd]))
+    addListeners('dblclick', playChunk, playBlock)
+    info('Enter speaking mode')
+    startSpeaking && startPos.chunkIx != null && gotoChunk(startPos.chunkIx) && play()
   }
 
   function exitMode() {
     stop()
     Object.keys(commands).forEach(cmd => Mousetrap.unbind(options.hotkeys[cmd]))
+    removeListeners('dblclick')
     bindHotkey(options.hotkeys.exitMode, exitMode)
     bindHotkey(options.hotkeys.enterMode, enterMode)
     info('Exit speaking mode')
@@ -182,7 +217,15 @@ const LookListenRead = (function() {
 
   return opts => {
     options = opts
-    bindHotkey(options.hotkeys.enterMode, enterMode)
+    initChunks()
+    addListeners('contextmenu', setStartPos, setStartPos)
+    initVoice(() => {
+      bindHotkey(options.hotkeys.enterMode, enterMode)
+      /* addElementsListener('onmousedown', setLastMouseDown, setLastMouseDown);*/
+      chrome.extension.onMessage.addListener(message => {
+        message.action == "start" && enterMode(true);
+      })
+    })
   }
 
 })()

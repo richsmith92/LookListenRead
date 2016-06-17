@@ -10,6 +10,12 @@
         "chrome_style": true
     },
 
+    "background": {
+        "scripts": [
+            "background.js"
+        ]
+    },
+    
     "content_scripts": [ {
         "all_frames": true,
         "css": ["content.css"],
@@ -23,6 +29,6 @@
     } ],
 
     "permissions": [
-        "tabs","storage"
+        "tabs","storage","contextMenus"
     ]
 }

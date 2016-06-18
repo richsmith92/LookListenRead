@@ -45,12 +45,12 @@ const LookListenRead = (function() {
       onend: () => playing && next(),
       onerror: info,
     })
-    utterances.push(msg)
+    utterances.push(msg) // see http://stackoverflow.com/a/35935851/713303
     speechSynthesis.speak(msg)
   }
 
   /* Chunk is a set of blast nodes sharing common block-style parent. Nodes in chunk are
-     played and highlighted together. */
+     uttered and highlighted together. */
   function initChunks() {
 
     function displayType(elem) {
@@ -164,11 +164,11 @@ const LookListenRead = (function() {
   }
 
   function addListeners(event, action) {
-    chunkAction && chunks.forEach(chunk => {
+    chunks.forEach(chunk => {
       chunk.actions[event] = action(chunk)
       chunk.nodes.forEach(elem => elem.addEventListener(event, chunk.actions[event]))
     })
-    blockAction && blocks.forEach(block => {
+    blocks.forEach(block => {
       block.actions[event] = action(block)
       block.node.addEventListener(event, block.actions[event])
     })
@@ -193,7 +193,7 @@ const LookListenRead = (function() {
     Mousetrap.unbind(options.hotkeys.enterMode)
     Object.keys(commands).forEach(cmd => bindHotkey(options.hotkeys[cmd], commands[cmd]))
     addListeners('dblclick', readable => e => {
-      gotoChunk(firstChunkIx) && reset(true)
+      gotoChunk(firstChunkIx(readable)) && reset(true)
       e.stopPropagation()
     })
     info('Enter speaking mode')

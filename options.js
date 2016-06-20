@@ -6,19 +6,18 @@ const $ = id => document.getElementById(id)
 
 const valueOpts = ['rate', 'voice', 'delimiter', 'maxLength', 'regexFilter', 'regexIgnore']
 
-function restore() {
+const restore = () => {
   console.log('Reading options from sync storage...')
   chrome.storage.sync.get(defaults, items => {
     options = items
     console.log(options)
     ;['sentence', 'element'].forEach(x => $('delimiter').options.add(new Option(x, x)))
-    initVoiceOptions()
-    valueOpts.forEach(name => $(name).value = options[name])
+    initVoiceOptions(() => valueOpts.forEach(name => $(name).value = options[name]))
     initHotkeys()
   })
 }
 
-function save() {
+const save = () => {
   valueOpts.forEach(name => options[name] = $(name).value)
   console.log(options)
   chrome.storage.sync.set(options, () => {
@@ -29,23 +28,19 @@ function save() {
   })
 }
 
-function initVoiceOptions() {
-  speechSynthesis.onvoiceschanged = () =>
+const initVoiceOptions = next =>
+  speechSynthesis.onvoiceschanged = () => {
     speechSynthesis.getVoices().forEach(voice =>
       $('voice').options.add(new Option(
-        voice.name + ' ' + (voice.localService ? '(local)' : '(remote)'),
-        voice.name,
-        false,
-        voice.name === options.voice
-      )))
-}
+        voice.name + (voice.localService ? ' (local)' : ' (remote)'), voice.name)))
+    next()
+  }
 
-function initHotkeys() {
+const initHotkeys = () =>
   Object.keys(options.hotkeys).forEach(cmd =>
     defaults.hotkeys.hasOwnProperty(cmd) ? addHotkeyInput(cmd) : delete options.hotkeys[cmd])
-}
 
-function addHotkeyInput(cmd) {
+const addHotkeyInput = cmd => {
   const input = document.createElement('input')
   input.id = 'hotkey-' + cmd
   input.setAttribute('type', 'button')

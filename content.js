@@ -1,20 +1,9 @@
 /* global $, Mousetrap, chrome, defaults */
 
-const LookListenRead = (function() {
+const LookListenRead = (() => {
 
   const last = xs => xs[xs.length - 1]
   const info = s => console.log('LookListenRead: ' + s)
-
-  const commands = {
-    next: () => gotoChunk(chunkIx + 1) && reset(),
-    previous: () => gotoChunk(chunkIx - 1) && reset(),
-    nextBlock: () => gotoBlock(blockIx + 1),
-    previousBlock: () => gotoBlock(blockIx - 1),
-    pauseOrResume: pauseOrResume,
-    slowdown: () => speedup(-10),
-    speedup: () => speedup(10),
-    exitMode: exitMode,
-  }
 
   let playing = false
   let chunkIx = null
@@ -26,7 +15,7 @@ const LookListenRead = (function() {
   const blocks = []
   const utterances = []
 
-  function initVoice(next) {
+  const initVoice = next => {
     const voices = speechSynthesis.getVoices()
     info('Found voices: ' + voices.length)
     voice = voices.find(v => v.name === options.voice)
@@ -38,7 +27,7 @@ const LookListenRead = (function() {
     }
   }
 
-  function speakText(text, next) {
+  const speakText = (text, next) => {
     const msg = Object.assign(new SpeechSynthesisUtterance(text), {
       rate: options.rate,
       voice: voice,
@@ -51,13 +40,12 @@ const LookListenRead = (function() {
 
   /* Chunk is a set of blast nodes sharing common block-style parent. Nodes in chunk are
      uttered and highlighted together. */
-  function initChunks() {
+  const initChunks = () => {
 
-    function displayType(elem) {
-      return (elem.currentStyle || window.getComputedStyle(elem, '')).display
-    }
+    const displayType = elem =>
+      (elem.currentStyle || window.getComputedStyle(elem, '')).display
 
-    function closestBlock(elem) {
+    const closestBlock = elem => {
       while (displayType(elem) !== 'block' && elem.parentNode) {
         elem = elem.parentNode
       }
@@ -94,11 +82,11 @@ const LookListenRead = (function() {
          })
   }
   
-  function bringToRange(i, xs) {
+  const bringToRange = (i, xs) => {
     return i == null ? i : Math.max(0, Math.min(xs.length - 1, i))
   }
 
-  function play() {
+  const play = () => {
     chunkIx != null || gotoChunk(0)
     playing = true
     speakText(chunks[chunkIx].text, () => {
@@ -106,16 +94,16 @@ const LookListenRead = (function() {
     })
   }
   
-  function pause() {
+  const pause = () => {
     playing = false
     speechSynthesis.cancel()
   }
 
-  function pauseOrResume() {
+  const pauseOrResume = () => {
     playing ? pause() : play()
   }
 
-  function reset(startPlaying) {
+  const reset = startPlaying => {
     if (playing) {
       pause()
       setTimeout(play, 30)
@@ -124,19 +112,19 @@ const LookListenRead = (function() {
     }
   }
 
-  function stop() {
+  const stop = () => {
     pause()
     gotoChunk(null)
   }
 
-  function gotoBlock(i) {
+  const gotoBlock = (i) => {
     i = bringToRange(i, blocks)
     blockIx === i || gotoChunk(blocks[i].chunkIxs[0]) && reset()
   }
 
   // Go to new chunk index, highlight the chunk nodes and return true if new chunk index is
   // not null.
-  function gotoChunk(i) {
+  const gotoChunk = (i) => {
     i = bringToRange(i, chunks)
     if (chunkIx !== i) {
       chunkIx != null &&
@@ -151,19 +139,19 @@ const LookListenRead = (function() {
     return chunkIx != null
   }
   
-  function speedup(percentage) {
+  const speedup = percentage => {
     options.rate *= 1 + 0.01 * percentage
     reset()
   }
 
-  function bindHotkey(hotkey, action) {
+  const bindHotkey = (hotkey, action) => {
     Mousetrap.bind(hotkey, () => {
       action()
       return false
     })
   }
 
-  function addListeners(event, action) {
+  const addListeners = (event, action) => {
     chunks.forEach(chunk => {
       chunk.actions[event] = action(chunk)
       chunk.nodes.forEach(elem => elem.addEventListener(event, chunk.actions[event]))
@@ -174,7 +162,7 @@ const LookListenRead = (function() {
     })
   }
 
-  function removeListeners(event) {
+  const removeListeners = event => {
     chunks.forEach(chunk => chunk.nodes.forEach(elem =>
       elem.removeEventListener(event, chunk.actions[event])))
     blocks.forEach(block => block.node.removeEventListener(event, block.actions[event]))
@@ -189,7 +177,18 @@ const LookListenRead = (function() {
       chunkIx: firstChunkIx(readable),
     })
 
-  function enterMode(startSpeaking) {
+  const commands = {
+    next: () => gotoChunk(chunkIx + 1) && reset(),
+    previous: () => gotoChunk(chunkIx - 1) && reset(),
+    nextBlock: () => gotoBlock(blockIx + 1),
+    previousBlock: () => gotoBlock(blockIx - 1),
+    pauseOrResume: () => pauseOrResume(),
+    slowdown: () => speedup(-10),
+    speedup: () => speedup(10),
+    exitMode: () => exitMode(),
+  }
+
+  const enterMode = startSpeaking => {
     Mousetrap.unbind(options.hotkeys.enterMode)
     Object.keys(commands).forEach(cmd => bindHotkey(options.hotkeys[cmd], commands[cmd]))
     addListeners('dblclick', readable => e => {
@@ -200,7 +199,7 @@ const LookListenRead = (function() {
     startSpeaking && gotoChunk(startPos.chunkIx) && play()
   }
 
-  function exitMode() {
+  const exitMode = () => {
     stop()
     Object.keys(commands).forEach(cmd => Mousetrap.unbind(options.hotkeys[cmd]))
     removeListeners('dblclick')
@@ -215,9 +214,8 @@ const LookListenRead = (function() {
     addListeners('contextmenu', setStartPos)
     initVoice(() => {
       bindHotkey(options.hotkeys.enterMode, enterMode)
-      chrome.extension.onMessage.addListener(message => {
-        message.action === 'start' && enterMode(true)
-      })
+      chrome.extension.onMessage.addListener(message => 
+        message.action === 'start' && enterMode(true))
     })
   }
 

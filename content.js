@@ -10,11 +10,12 @@ const LookListenRead = (() => {
   let blockIx = null
   let options
   let voice
-  let startPos = {x: null, y: null, chunkIx: null}
+  let startPos = {x: null, y: null}
+  let insideMode = false
   const chunks = []
   const blocks = []
   const utterances = []
-
+  const blastClass = 'looklistenread'
   const initVoice = next => {
     const voices = speechSynthesis.getVoices()
     info('Found voices: ' + voices.length)
@@ -22,7 +23,7 @@ const LookListenRead = (() => {
     if (voice) {
       next()
     } else {
-      info('Selected voice not found. Waiting for voices...')
+      info(options.voice + ' not found. Listening for onvoiceschanged()...')
       speechSynthesis.onvoiceschanged = () => initVoice(next)
     }
   }
@@ -37,6 +38,7 @@ const LookListenRead = (() => {
     utterances.push(msg) // see http://stackoverflow.com/a/35935851/713303
     speechSynthesis.speak(msg)
   }
+
 
   /* Chunk is a set of blast nodes sharing common block-style parent. Nodes in chunk are
      uttered and highlighted together. */
@@ -53,10 +55,10 @@ const LookListenRead = (() => {
     }
 
     document.normalize()
-    $('body').blast({ delimiter: options.delimiter, customClass: 'looklistenread' })
+    $('body').blast({ delimiter: options.delimiter, customClass: blastClass })
     const regexFilter = new RegExp(options.regexFilter)
     const regexIgnore = new RegExp(options.regexIgnore)
-    Array.from(document.getElementsByClassName('looklistenread'))
+    Array.from(document.getElementsByClassName(blastClass))
       .filter(span => regexFilter.test(span.innerText) && !regexIgnore.test(span.innerText))
          .forEach(span => {
            const chunk = chunks.length > 0 ? last(chunks) : null
@@ -82,6 +84,14 @@ const LookListenRead = (() => {
          })
   }
   
+  const closestChunk = elem => elem && (
+    elem.classList.contains(blastClass) && chunks.find(
+      chunk => chunk.nodes.includes(elem)) ||
+    elem.hasChildNodes && elem.childNodes.reduce(
+      (chunk, child) => chunk || closestChunk(child), null) ||
+    closestChunk(elem.nextSibling)
+  ) || null
+
   const bringToRange = (i, xs) => {
     return i == null ? i : Math.max(0, Math.min(xs.length - 1, i))
   }
@@ -99,9 +109,7 @@ const LookListenRead = (() => {
     speechSynthesis.cancel()
   }
 
-  const pauseOrResume = () => {
-    playing ? pause() : play()
-  }
+  const pauseOrResume = () => playing ? pause() : play()
 
   const reset = startPlaying => {
     if (playing) {
@@ -144,12 +152,10 @@ const LookListenRead = (() => {
     reset()
   }
 
-  const bindHotkey = (hotkey, action) => {
-    Mousetrap.bind(hotkey, () => {
-      action()
-      return false
-    })
-  }
+  const bindHotkey = (hotkey, action) => Mousetrap.bind(hotkey, () => {
+    action()
+    return false
+  })
 
   const addListeners = (event, action) => {
     chunks.forEach(chunk => {
@@ -170,13 +176,14 @@ const LookListenRead = (() => {
 
   const firstChunkIx = readable => readable.ix != null ? readable.ix : readable.chunkIxs[0]
 
-  const setStartPos = readable => e =>
-    startPos.x === e.clientX && startPos.y === e.clientY || (startPos = {
-      x: e.clientX,
-      y: e.clientY,
-      chunkIx: firstChunkIx(readable),
-    })
-
+  const startFromPoint = () => {
+    const elem = document.elementFromPoint(startPos.x, startPos.y)
+    console.log(elem)
+    const chunk = closestChunk(elem)
+    gotoChunk(chunk ? chunk.ix : 0)
+    reset(true)
+  }
+  
   const commands = {
     next: () => gotoChunk(chunkIx + 1) && reset(),
     previous: () => gotoChunk(chunkIx - 1) && reset(),
@@ -188,15 +195,16 @@ const LookListenRead = (() => {
     exitMode: () => exitMode(),
   }
 
-  const enterMode = startSpeaking => {
+  const enterMode = () => {
+    initChunks()
     Mousetrap.unbind(options.hotkeys.enterMode)
     Object.keys(commands).forEach(cmd => bindHotkey(options.hotkeys[cmd], commands[cmd]))
     addListeners('dblclick', readable => e => {
       gotoChunk(firstChunkIx(readable)) && reset(true)
       e.stopPropagation()
     })
+    insideMode = true;
     info('Enter speaking mode')
-    startSpeaking && gotoChunk(startPos.chunkIx) && play()
   }
 
   const exitMode = () => {
@@ -205,17 +213,22 @@ const LookListenRead = (() => {
     removeListeners('dblclick')
     bindHotkey(options.hotkeys.exitMode, exitMode)
     bindHotkey(options.hotkeys.enterMode, enterMode)
+    insideMode = false;
     info('Exit speaking mode')
   }
 
   return opts => {
     options = opts
-    initChunks()
-    addListeners('contextmenu', setStartPos)
+    document.body.addEventListener('contextmenu', e =>
+      startPos = {x: e.pageX - window.pageXOffset, y: e.pageY - window.pageYOffset})
     initVoice(() => {
       bindHotkey(options.hotkeys.enterMode, enterMode)
-      chrome.extension.onMessage.addListener(message => 
-        message.action === 'start' && enterMode(true))
+      chrome.extension.onMessage.addListener(message => {
+        if (message.action === 'start') {
+          insideMode || enterMode()
+          startFromPoint()
+        }
+      })
     })
   }
 

@@ -84,10 +84,10 @@ const LookListenRead = (() => {
          })
   }
   
-  const closestChunk = elem => elem && (
+  const closestChunk = elem => elem instanceof HTMLElement && (
     elem.classList.contains(blastClass) && chunks.find(
       chunk => chunk.nodes.includes(elem)) ||
-    elem.hasChildNodes && elem.childNodes.reduce(
+    Array.from(elem.childNodes).reduce(
       (chunk, child) => chunk || closestChunk(child), null) ||
     closestChunk(elem.nextSibling)
   ) || null

@@ -1,7 +1,6 @@
 /* global $, Mousetrap, chrome, defaults */
 
 const LookListenRead = (() => {
-
   const last = xs => xs[xs.length - 1]
   const info = s => console.log('LookListenRead: ' + s)
 
@@ -218,20 +217,27 @@ const LookListenRead = (() => {
   }
 
   return opts => {
-    options = opts
-    document.body.addEventListener('contextmenu', e =>
-      startPos = {x: e.pageX - window.pageXOffset, y: e.pageY - window.pageYOffset})
-    initVoice(() => {
-      bindHotkey(options.hotkeys.enterMode, enterMode)
-      chrome.extension.onMessage.addListener(message => {
-        if (message.action === 'start') {
-          insideMode || enterMode()
-          startFromPoint()
-        }
+      options = opts
+      console.log(opts)
+      document.body.addEventListener('contextmenu', e =>
+        startPos = {x: e.pageX - window.pageXOffset, y: e.pageY - window.pageYOffset})
+      initVoice(() => {
+        info('Initialized voice')
+        bindHotkey(options.hotkeys.enterMode, enterMode)
+        chrome.extension.onMessage.addListener(message => {
+          if (message.action === 'start') {
+            insideMode || enterMode()
+            startFromPoint()
+          }
+        })
       })
-    })
   }
 
 })()
 
-chrome.storage.sync.get(defaults, LookListenRead)
+/* console.log ("injected " + document.body.hasAttribute("looklistenread"))*/
+if (!document.body.hasAttribute("looklistenread")) {
+  document.body.setAttribute("looklistenread",1)
+  chrome.storage.sync.get(defaults, LookListenRead)
+}
+/* console.log("Injected LookListenRead...")*/

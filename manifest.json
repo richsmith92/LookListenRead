@@ -4,6 +4,7 @@
     "name": "Look Listen Read",
     "description": "Listen to web pages",
     "version": "1.0",
+    "minimum_chrome_version": "49",
 
     "options_ui": {
         "page": "options.html",
@@ -17,7 +18,7 @@
     },
     
     "content_scripts": [ {
-        "all_frames": true,
+        "all_frames": false,
         "css": ["content.css"],
         "js": [
             "jquery.min.js",

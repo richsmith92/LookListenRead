@@ -1,4 +1,4 @@
-const defaults = {
+this.defaults = {
   hotkeys: {
     enterMode: ['alt+ctrl+s'],
     next: ['right'],

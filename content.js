@@ -202,7 +202,7 @@ const LookListenRead = (() => {
       gotoChunk(firstChunkIx(readable)) && reset(true)
       e.stopPropagation()
     })
-    insideMode = true;
+    insideMode = true
     info('Enter speaking mode')
   }
 
@@ -212,32 +212,32 @@ const LookListenRead = (() => {
     removeListeners('dblclick')
     bindHotkey(options.hotkeys.exitMode, exitMode)
     bindHotkey(options.hotkeys.enterMode, enterMode)
-    insideMode = false;
+    insideMode = false
     info('Exit speaking mode')
   }
 
   return opts => {
-      options = opts
-      console.log(opts)
-      document.body.addEventListener('contextmenu', e =>
+    options = opts
+    console.log(opts)
+    document.body.addEventListener('contextmenu', e =>
         startPos = {x: e.pageX - window.pageXOffset, y: e.pageY - window.pageYOffset})
-      initVoice(() => {
-        info('Initialized voice')
-        bindHotkey(options.hotkeys.enterMode, enterMode)
-        chrome.extension.onMessage.addListener(message => {
-          if (message.action === 'start') {
-            insideMode || enterMode()
-            startFromPoint()
-          }
-        })
+    initVoice(() => {
+      info('Initialized voice')
+      bindHotkey(options.hotkeys.enterMode, enterMode)
+      chrome.extension.onMessage.addListener(message => {
+        if (message.action === 'start') {
+          insideMode || enterMode()
+          startFromPoint()
+        }
       })
+    })
   }
 
 })()
 
 /* console.log ("injected " + document.body.hasAttribute("looklistenread"))*/
-if (!document.body.hasAttribute("looklistenread")) {
-  document.body.setAttribute("looklistenread",1)
+if (!document.body.hasAttribute('looklistenread')) {
+  document.body.setAttribute('looklistenread', 1)
   chrome.storage.sync.get(defaults, LookListenRead)
 }
 /* console.log("Injected LookListenRead...")*/
